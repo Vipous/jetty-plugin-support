@@ -177,17 +177,7 @@ public abstract class MappedLoginService extends AbstractLifeCycle implements Lo
      */
     public synchronized UserIdentity putUser(String userName, Credential credential, String[] roles)
     {
-        Principal userPrincipal = new KnownUser(userName,credential);
-        Subject subject = new Subject();
-        subject.getPrincipals().add(userPrincipal);
-        subject.getPrivateCredentials().add(credential);
-        
-        if (roles!=null)
-            for (String role : roles)
-                subject.getPrincipals().add(new RolePrincipal(role));
-
-        subject.setReadOnly();
-        UserIdentity identity=_identityService.newUserIdentity(subject,userPrincipal,roles);
+        UserIdentity identity=_identityService.newUserIdentity(userName, credential, roles);
         _users.put(userName,identity);
         return identity;
     } 
@@ -329,4 +319,3 @@ public abstract class MappedLoginService extends AbstractLifeCycle implements Lo
         }
     }
 }
-

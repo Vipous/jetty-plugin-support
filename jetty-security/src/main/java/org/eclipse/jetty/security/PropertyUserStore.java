@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.eclipse.jetty.http.security.Credential;
+import org.eclipse.jetty.server.UserIdentity;
 import org.eclipse.jetty.util.Scanner;
 import org.eclipse.jetty.util.Scanner.BulkListener;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
@@ -42,8 +44,10 @@ public class PropertyUserStore extends AbstractLifeCycle
     private Scanner _scanner;
     private int _refreshInterval = 0;// default is not to reload
 
+    private IdentityService _identityService = new DefaultIdentityService();
     private boolean _firstLoad = true; // true if first load, false from that point on
     private final List<String> _knownUsers = new ArrayList<String>();
+    private final Map<String, UserIdentity> _knownUserIdentities = new HashMap<String, UserIdentity>();
     private List<UserListener> _listeners;
 
     /* ------------------------------------------------------------ */
@@ -56,6 +60,12 @@ public class PropertyUserStore extends AbstractLifeCycle
     public void setConfig(String config)
     {
         _config = config;
+    }
+
+    /* ------------------------------------------------------------ */
+    public UserIdentity getUserIdentity(String userName)
+    {
+        return _knownUserIdentities.get(userName);
     }
 
     /* ------------------------------------------------------------ */
@@ -105,7 +115,7 @@ public class PropertyUserStore extends AbstractLifeCycle
 
         for (Map.Entry<Object, Object> entry : properties.entrySet())
         {
-            String username = ((String)entry.getKey()).trim();
+            String userName = ((String)entry.getKey()).trim();
             String credentials = ((String)entry.getValue()).trim();
             String roles = null;
             int c = credentials.indexOf(',');
@@ -115,13 +125,15 @@ public class PropertyUserStore extends AbstractLifeCycle
                 credentials = credentials.substring(0,c).trim();
             }
 
-            if (username != null && username.length() > 0 && credentials != null && credentials.length() > 0)
+            if (userName != null && userName.length() > 0 && credentials != null && credentials.length() > 0)
             {
                 String[] roleArray = IdentityService.NO_ROLES;
                 if (roles != null && roles.length() > 0)
                     roleArray = roles.split(",");
-                known.add(username);
-                notifyUpdate(username,Credential.getCredential(credentials),roleArray);
+                known.add(userName);
+                Credential credential = Credential.getCredential(credentials);
+                _knownUserIdentities.put(userName,_identityService.newUserIdentity(userName,credential,roleArray));
+                notifyUpdate(userName,credential,roleArray);
             }
         }
 
@@ -138,6 +150,7 @@ public class PropertyUserStore extends AbstractLifeCycle
                     String user = users.next();
                     if (!known.contains(user))
                     {
+                        _knownUserIdentities.remove(user);
                         notifyRemove(user);
                     }
                 }
@@ -201,15 +214,17 @@ public class PropertyUserStore extends AbstractLifeCycle
 
             _scanner.addListener(new BulkListener()
             {
-                public void filesChanged(List filenames) throws Exception
+                public void filesChanged(List<String> filenames) throws Exception
                 {
                     if (filenames == null)
                         return;
                     if (filenames.isEmpty())
                         return;
-                    if (filenames.size() == 1 && filenames.get(0).equals(getConfigResource().getFile().getAbsolutePath()))
+                    if (filenames.size() == 1)
                     {
-                        loadUsers();
+                        Resource r = Resource.newResource(filenames.get(0));
+                        if (r.getFile().equals(_configResource.getFile()))
+                            loadUsers();
                     }
                 }
 

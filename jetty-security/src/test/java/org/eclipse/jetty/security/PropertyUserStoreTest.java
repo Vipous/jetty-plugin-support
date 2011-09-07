@@ -78,6 +78,9 @@ public class PropertyUserStoreTest
 
         store.start();
 
+        Assert.assertNotNull("Failed to retrieve UserIdentity directly fromo PropertyUserStore", store.getUserIdentity("tom"));
+        Assert.assertNotNull("Failed to retrieve UserIdentity directly fromo PropertyUserStore", store.getUserIdentity("dick"));
+        Assert.assertNotNull("Failed to retrieve UserIdentity directly fromo PropertyUserStore", store.getUserIdentity("harry"));
         Assert.assertEquals(3,userCount.get());
     }
 
@@ -118,8 +121,9 @@ public class PropertyUserStoreTest
         long start = System.currentTimeMillis();
         while (userCount.get() < 4 && (System.currentTimeMillis() - start) < 10000)
             Thread.sleep(10);
+        
+        Assert.assertNotNull("Failed to retrieve UserIdentity from PropertyUserStore directly", store.getUserIdentity("skip"));
         Assert.assertEquals(4,userCount.get());
-
         Assert.assertTrue(users.contains("skip"));
     }
 

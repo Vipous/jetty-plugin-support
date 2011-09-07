@@ -17,6 +17,7 @@ import java.security.Principal;
 
 import javax.security.auth.Subject;
 
+import org.eclipse.jetty.http.security.Credential;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.UserIdentity;
 
@@ -76,6 +77,18 @@ public interface IdentityService
      * @return A new immutable UserIdententity
      */
     UserIdentity newUserIdentity(Subject subject, Principal userPrincipal, String[] roles);
+    
+    /* ------------------------------------------------------------ */
+    /**
+     * Convenience method to create a new UserIdentity based on userName, credential and roles. Uses 
+     * newUserIdentity(Subject subject, Principal userPrincipal, String[] roles) internally
+     * 
+     * @param userName UserName to use
+     * @param credential Credential to be be used for the UserIdentity
+     * @param roles set of roles to include in UserIdentity.
+     * @return A new immutable UserIdententity
+     */
+    UserIdentity newUserIdentity(String userName, Credential credential, String[] roles);
 
     /* ------------------------------------------------------------ */
     /**

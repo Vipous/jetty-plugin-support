@@ -22,6 +22,50 @@ import org.junit.Test;
 public class Utf8StringBuilderTest
 {
     @Test
+    public void testInvalid()
+        throws Exception
+    {
+        String[] invalids = {
+                "c0af",
+                "EDA080",
+                "f08080af",
+                "f8808080af",
+                "e080af",
+                "F4908080",
+                "fbbfbfbfbf"
+        };
+        
+        for (String i : invalids)
+        {
+            byte[] bytes = TypeUtil.fromHexString(i);
+
+            /* Test what JVM does
+            try
+            {
+                String s = new String(bytes,0,bytes.length,"UTF-8");
+                System.err.println(i+": "+s);
+            }
+            catch(Exception e)
+            {
+                System.err.println(i+": "+e);
+            }
+            */
+            
+            try
+            {
+                Utf8StringBuilder buffer = new Utf8StringBuilder();
+                buffer.append(bytes,0,bytes.length);
+                
+                assertEquals(i,"not expected",buffer.toString());
+            }
+            catch(IllegalArgumentException e)
+            {
+                assertTrue(i,true);
+            }
+        }
+    }
+    
+    @Test
     public void testUtfStringBuilder()
         throws Exception
     {
@@ -33,7 +77,9 @@ public class Utf8StringBuilderTest
         assertEquals(source, buffer.toString());
         assertTrue(buffer.toString().endsWith("jetty")); 
     }
-
+    
+    
+    
     @Test
     public void testShort()
     throws Exception
@@ -48,7 +94,7 @@ public class Utf8StringBuilderTest
             buffer.toString();
             assertTrue(false);
         }
-        catch(IllegalStateException e)
+        catch(Utf8Appendable.NotUtf8Exception e)
         {
             assertTrue(e.toString().indexOf("!UTF-8")>=0);
         }
@@ -70,11 +116,11 @@ public class Utf8StringBuilderTest
                 buffer.append(bytes[i]);
             assertTrue(false);
         }
-        catch(IllegalStateException e)
+        catch(Utf8Appendable.NotUtf8Exception e)
         {
-            assertTrue(e.toString().indexOf("!UTF-8")>=0);
+            assertTrue(true);
         }
-        assertEquals("abc?", buffer.toString());
+        assertEquals("abc\ufffd", buffer.toString());
     }
 
     
@@ -85,6 +131,7 @@ public class Utf8StringBuilderTest
         String source="\uD842\uDF9F";
         byte[] bytes=source.getBytes("UTF-8");
         
+        // System.err.println(TypeUtil.toHexString(bytes));
         String jvmcheck = new String(bytes,0,bytes.length,"UTF-8");
         assertEquals(source,jvmcheck);
         

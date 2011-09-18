@@ -13,61 +13,62 @@
 
 package org.eclipse.jetty.util;
 
+import java.io.IOException;
+
 /* ------------------------------------------------------------ */
-/**
- * UTF-8 StringBuffer.
+/** UTF-8 StringBuffer.
+ *
+ * This class wraps a standard {@link java.lang.StringBuffer} and provides methods to append 
+ * UTF-8 encoded bytes, that are converted into characters.
  * 
- * This class wraps a standard {@link java.lang.StringBuffer} and provides methods to append UTF-8 encoded bytes, that are converted into characters.
+ * This class is stateful and up to 6  calls to {@link #append(byte)} may be needed before 
+ * state a character is appended to the string buffer.
  * 
- * This class is stateful and up to 6 calls to {@link #append(byte)} may be needed before state a character is appended to the string buffer.
- * 
- * The UTF-8 decoding is done by this class and no additional buffers or Readers are used. The UTF-8 code was inspired by http://javolution.org
+ * The UTF-8 decoding is done by this class and no additional buffers or Readers are used.
+ * The UTF-8 code was inspired by http://javolution.org
  * 
  * This class is not synchronised and should probably be called Utf8StringBuilder
  */
-public class Utf8StringBuffer extends Utf8AppendableNewAlgo
+public class Utf8StringBufferOldDecoder extends Utf8Appendable 
 {
     final StringBuffer _buffer;
-
-    public Utf8StringBuffer()
+    
+    public Utf8StringBufferOldDecoder()
     {
         super(new StringBuffer());
-        _buffer = (StringBuffer)_appendable;
+        _buffer=(StringBuffer)_appendable;
     }
-
-    public Utf8StringBuffer(int capacity)
+    
+    public Utf8StringBufferOldDecoder(int capacity)
     {
         super(new StringBuffer(capacity));
-        _buffer = (StringBuffer)_appendable;
+        _buffer=(StringBuffer)_appendable;
     }
 
     public int length()
     {
         return _buffer.length();
     }
-
+    
     public void reset()
     {
-        super.reset();
         _buffer.setLength(0);
+        _expectedContinuationBytes=0;
+        _codePoint=0;
     }
-
+    
     public StringBuffer getStringBuffer()
     {
-        checkState();
+        if (_expectedContinuationBytes!=0)
+            throw new NotUtf8Exception();
         return _buffer;
     }
-
+    
     @Override
     public String toString()
     {
-        checkState();
+        if (_expectedContinuationBytes!=0)
+            throw new NotUtf8Exception();
         return _buffer.toString();
-    }
-
-    private void checkState()
-    {
-        if(_state>0)
-            throw new IllegalArgumentException("Tried to read incomplete UTF8 decoded String");
     }
 }

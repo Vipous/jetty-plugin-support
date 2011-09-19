@@ -13,7 +13,6 @@
 
 package org.eclipse.jetty.util;
 
-import java.io.IOException;
 
 /* ------------------------------------------------------------ */
 /** UTF-8 StringBuilder.
@@ -28,7 +27,7 @@ import java.io.IOException;
  * The UTF-8 code was inspired by http://javolution.org
  * 
  */
-public class Utf8StringBuilder extends Utf8Appendable 
+public class Utf8StringBuilder extends Utf8AppendableNewAlgo
 {
     final StringBuilder _buffer;
     
@@ -51,23 +50,26 @@ public class Utf8StringBuilder extends Utf8Appendable
     
     public void reset()
     {
+        super.reset();
         _buffer.setLength(0);
-        _expectedContinuationBytes=0;
-        _codePoint=0;
     }
     
     public StringBuilder getStringBuilder()
     {
-        if (_expectedContinuationBytes!=0)
-            throw new NotUtf8Exception();
+        checkState();
         return _buffer;
     }
     
     @Override
     public String toString()
     {
-        if (_expectedContinuationBytes!=0)
-            throw new NotUtf8Exception();
+        checkState();
         return _buffer.toString();
+    }
+    
+    private void checkState()
+    {
+        if(_state>0)
+            throw new IllegalArgumentException("Tried to read incomplete UTF8 decoded String");
     }
 }

@@ -4,12 +4,13 @@ import java.io.IOException;
 
 public abstract class Utf8AppendableNewAlgo
 {
+    private final char REPLACEMENT = '\ufffd';
     private static final int UTF8_ACCEPT = 0;
     private static final int UTF8_REJECT = 12;
-    
+
     protected final Appendable _appendable;
     protected int _state = UTF8_ACCEPT;
-    
+
     private static final byte[] BYTE_TABLE =
     {
             // The first part of the table maps bytes to character classes that
@@ -19,11 +20,10 @@ public abstract class Utf8AppendableNewAlgo
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9,
             9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 2, 2,
             2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 10, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 11, 6, 6, 6,
-            5, 8, 8, 8, 8, 8, 8, 8, 8,
-            8,
-            8,
-            8,
+            5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8 };
 
+    private static final byte[] TRANS_TABLE =
+    {
             // The second part is a transition table that maps a combination
             // of a state of the automaton and a character class to a state.
             0, 12, 24, 36, 60, 96, 84, 12, 12, 12, 48, 72, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 0, 12, 12, 12, 12, 12, 0, 12, 0, 12, 12, 12, 24,
@@ -38,8 +38,9 @@ public abstract class Utf8AppendableNewAlgo
     }
 
     public abstract int length();
-    
-    protected void reset(){
+
+    protected void reset()
+    {
         _state = UTF8_ACCEPT;
     }
 
@@ -90,22 +91,35 @@ public abstract class Utf8AppendableNewAlgo
 
     protected void appendByte(byte b) throws IOException
     {
-        decode(b & 0xFF);
-        String string = new String(Character.toChars(_codep));
-        if (_state == UTF8_ACCEPT)
-            _appendable.append(string);
-    }
 
-    private boolean decode(int i)
-    {
-        int type = BYTE_TABLE[i];
-        _codep = _state != UTF8_ACCEPT?(i & 0x3F) | (_codep << 6):(0xFF >> type) & i;
-        _state = BYTE_TABLE[256 + _state + type];
-        if (_state == UTF8_REJECT)
+        if (b > 0 && _state == UTF8_ACCEPT)
         {
-            _state = UTF8_ACCEPT;
-            throw new IllegalArgumentException("Not valid UTF8!");
+            _appendable.append((char)(b & 0xFF));
         }
-        return _state == UTF8_ACCEPT;
+        else
+        {
+            int i = b & 0xFF;
+            int type = BYTE_TABLE[i];
+            _codep = _state != UTF8_ACCEPT?(i & 0x3F) | (_codep << 6):(0xFF >> type) & i;
+            _state = TRANS_TABLE[_state + type];
+
+            if (_state == UTF8_ACCEPT)
+            {
+                if (_codep < 0xd800)
+                    _appendable.append((char)_codep);
+                else
+                {
+                    char[] chars = Character.toChars(_codep);
+                    for (char c : chars)
+                        _appendable.append(c);
+                }
+            }
+            else if (_state == UTF8_REJECT)
+            {
+                _state = UTF8_ACCEPT;
+                _appendable.append(REPLACEMENT);
+                throw new IllegalArgumentException("Not valid UTF8!");
+            }
+        }
     }
 }

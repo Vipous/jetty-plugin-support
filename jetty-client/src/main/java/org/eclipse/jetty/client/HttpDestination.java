@@ -65,7 +65,7 @@ public class HttpDestination implements Dumpable
     private List<HttpCookie> _cookies;
 
 
-    
+
     HttpDestination(HttpClient client, Address address, boolean ssl)
     {
         _client = client;
@@ -665,7 +665,7 @@ public class HttpDestination implements Dumpable
             AggregateLifeCycle.dump(out,indent,_connections);
         }
     }
-    
+
     private class ConnectExchange extends ContentExchange
     {
         private final SelectConnector.ProxySelectChannelEndPoint proxyEndPoint;
@@ -693,7 +693,7 @@ public class HttpDestination implements Dumpable
             }
             else
             {
-                onConnectionFailed(new ConnectException(exchange.getAddress().toString()));
+                onConnectionFailed(new ConnectException("Proxy: " + proxyEndPoint.getRemoteAddr() +":" + proxyEndPoint.getRemotePort() + " didn't return http return code 200 while trying to request: " + exchange.getAddress().toString()));
             }
         }
 
@@ -701,6 +701,14 @@ public class HttpDestination implements Dumpable
         protected void onConnectionFailed(Throwable x)
         {
             HttpDestination.this.onConnectionFailed(x);
+        }
+
+        @Override
+        protected void onException(Throwable x)
+        {
+            _queue.remove(exchange);
+            exchange.setStatus(STATUS_EXCEPTED);
+            exchange.getEventListener().onException(x);
         }
     }
 }

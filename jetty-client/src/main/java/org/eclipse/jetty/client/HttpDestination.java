@@ -691,9 +691,12 @@ public class HttpDestination implements Dumpable
             {
                 proxyEndPoint.upgrade();
             }
+            else if(getResponseStatus() == HttpStatus.GATEWAY_TIMEOUT_504){
+                onExpire();
+            }
             else
             {
-                onConnectionFailed(new ConnectException("Proxy: " + proxyEndPoint.getRemoteAddr() +":" + proxyEndPoint.getRemotePort() + " didn't return http return code 200 while trying to request: " + exchange.getAddress().toString()));
+                onException(new ConnectException("Proxy: " + proxyEndPoint.getRemoteAddr() +":" + proxyEndPoint.getRemotePort() + " didn't return http return code 200 while trying to request: " + exchange.getAddress().toString()));
             }
         }
 
@@ -710,5 +713,14 @@ public class HttpDestination implements Dumpable
             exchange.setStatus(STATUS_EXCEPTED);
             exchange.getEventListener().onException(x);
         }
+
+        @Override
+        protected void onExpire()
+        {
+            _queue.remove(exchange);
+            exchange.setStatus(STATUS_EXPIRED);
+            exchange.getEventListener().onExpire();
+        }
+
     }
 }

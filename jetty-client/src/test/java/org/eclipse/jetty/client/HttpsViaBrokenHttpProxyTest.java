@@ -85,13 +85,12 @@ public class HttpsViaBrokenHttpProxyTest
             else if (serverAddress.contains("error500"))
             {
                 response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                response.flushBuffer();
             }
             else if (serverAddress.contains("error504"))
             {
                 response.setStatus(HttpStatus.GATEWAY_TIMEOUT_504);
-                response.flushBuffer();
             }
+            baseRequest.setHandled(true);
         }
     }
 
@@ -122,8 +121,7 @@ public class HttpsViaBrokenHttpProxyTest
             exchange.setURL(url);
             exchange.addRequestHeader("behaviour",desiredBehaviour);
             _client.send(exchange);
-            exchange.waitForDone();
-            assertEquals(HttpExchange.toState(exptectedStatus) + " status awaited",exptectedStatus,exchange.getStatus());
+            assertEquals(HttpExchange.toState(exptectedStatus) + " status awaited",exptectedStatus,exchange.waitForDone());
         }
         catch (Exception e)
         {

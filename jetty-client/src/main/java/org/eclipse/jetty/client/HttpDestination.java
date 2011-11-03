@@ -524,7 +524,7 @@ public class HttpDestination implements Dumpable
         // Add any known authorizations
         if (_authorizations != null)
         {
-            Authentication auth = (Authentication)_authorizations.match(ex.getURI());
+            Authentication auth = (Authentication)_authorizations.match(ex.getRequestURI());
             if (auth != null)
                 (auth).setCredentials(ex);
         }
@@ -687,16 +687,17 @@ public class HttpDestination implements Dumpable
         @Override
         protected void onResponseComplete() throws IOException
         {
-            if (getResponseStatus() == HttpStatus.OK_200)
+            int responseStatus = getResponseStatus();
+            if (responseStatus == HttpStatus.OK_200)
             {
                 proxyEndPoint.upgrade();
             }
-            else if(getResponseStatus() == HttpStatus.GATEWAY_TIMEOUT_504){
+            else if(responseStatus == HttpStatus.GATEWAY_TIMEOUT_504){
                 onExpire();
             }
             else
             {
-                onException(new ConnectException("Proxy: " + proxyEndPoint.getRemoteAddr() +":" + proxyEndPoint.getRemotePort() + " didn't return http return code 200 while trying to request: " + exchange.getAddress().toString()));
+                onException(new ConnectException("Proxy: " + proxyEndPoint.getRemoteAddr() +":" + proxyEndPoint.getRemotePort() + " didn't return http return code 200, but " + responseStatus + " while trying to request: " + exchange.getAddress().toString()));
             }
         }
 

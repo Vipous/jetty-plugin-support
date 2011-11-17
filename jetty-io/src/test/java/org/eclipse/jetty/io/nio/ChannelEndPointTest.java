@@ -6,6 +6,7 @@ import java.nio.channels.SocketChannel;
 import org.eclipse.jetty.io.EndPointTest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class ChannelEndPointTest extends EndPointTest<ChannelEndPoint>
 {
@@ -34,6 +35,10 @@ public class ChannelEndPointTest extends EndPointTest<ChannelEndPoint>
         c.server=new ChannelEndPoint(connector.accept());
         return c;
     }
-    
 
+    @Override
+    public void testClientServerExchange() throws Exception
+    {
+        super.testClientServerExchange();
+    }
 }

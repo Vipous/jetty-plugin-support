@@ -657,14 +657,8 @@ public class SslConnection extends AbstractConnection implements AsyncConnection
 
             while (now<end)
             {
-                process(null,null);
-                synchronized (this)
-                {
-                    if (_unwrapBuf!=null && _unwrapBuf.hasContent())
-                        break;
-                    if (_inbound!=null && _inbound.hasContent())
-                        break;
-                }
+                if (process(null,null))
+                    break;
                 _endp.blockReadable(end-now);
                 now = System.currentTimeMillis();
             }
@@ -789,10 +783,17 @@ public class SslConnection extends AbstractConnection implements AsyncConnection
 
         public String toString()
         {
-            Buffer i=_inbound;
-            Buffer o=_outbound;
-            Buffer u=_unwrapBuf;
-            return "SSL:"+_endp+" "+_engine.getHandshakeStatus()+" i/u/o="+(i==null?0:i.length())+"/"+(u==null?0:u.length())+"/"+(o==null?0:o.length()+(_oshut?" oshut":""));
+            Buffer i;
+            Buffer o;
+            Buffer u;
+            
+            synchronized(SslConnection.this)
+            {
+                i=_inbound;
+                o=_outbound;
+                u=_unwrapBuf;
+            }
+            return "SSL:"+_endp+" "+_engine.getHandshakeStatus()+" i/u/o="+(i==null?0:i.length())+"/"+(u==null?0:u.length())+"/"+(o==null?0:o.length()+(_ishut?" ishut":"")+(_oshut?" oshut":""));
         }
 
     }

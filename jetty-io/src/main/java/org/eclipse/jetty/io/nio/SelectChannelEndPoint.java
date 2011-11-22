@@ -162,6 +162,8 @@ public class SelectChannelEndPoint extends ChannelEndPoint implements AsyncEndPo
 
                 // we are not interested in further selecting
                 _key.interestOps(0);
+                if (!_dispatched)
+                    updateKey();
                 return;
             }
 
@@ -272,11 +274,11 @@ public class SelectChannelEndPoint extends ChannelEndPoint implements AsyncEndPo
     {
         long idleTimestamp=_idleTimestamp;
         if (!getChannel().isOpen() || idleTimestamp!=0 && _maxIdleTime>0 && now>(idleTimestamp+_maxIdleTime))
-            idleExpired();
+            onIdleExpired();
     }
 
     /* ------------------------------------------------------------ */
-    protected void idleExpired()
+    protected void onIdleExpired()
     {
         _connection.onIdleExpired();
     }

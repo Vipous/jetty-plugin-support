@@ -16,7 +16,6 @@ package org.eclipse.jetty.io.nio;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
@@ -236,9 +235,23 @@ public class SslConnection extends AbstractConnection implements AsyncConnection
     /* ------------------------------------------------------------ */
     public void onClose()
     {
-
     }
 
+    /* ------------------------------------------------------------ */
+    @Override
+    public void onIdleExpired()
+    {
+        try
+        {
+            _sslEndPoint.shutdownOutput();
+        }
+        catch (IOException e)
+        {
+            LOG.warn(e);
+            super.onIdleExpired();
+        }
+    }
+    
     /* ------------------------------------------------------------ */
     public void onInputShutdown() throws IOException
     {
@@ -586,6 +599,7 @@ public class SslConnection extends AbstractConnection implements AsyncConnection
                 _engine.closeOutbound();
                 _oshut=true;
             }
+            flush();
         }
 
         public boolean isOutputShutdown()
@@ -786,7 +800,7 @@ public class SslConnection extends AbstractConnection implements AsyncConnection
             Buffer i;
             Buffer o;
             Buffer u;
-            
+
             synchronized(SslConnection.this)
             {
                 i=_inbound;

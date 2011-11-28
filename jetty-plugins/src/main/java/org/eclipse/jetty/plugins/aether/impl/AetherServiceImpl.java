@@ -46,7 +46,7 @@ public class AetherServiceImpl implements AetherService
     private RepositorySystem _repoSystem;
     private RepositorySystemSession _repoSession;
 
-    public AetherServiceImpl(RepositorySystem repoSystem, RepositorySystemSession repoSession)
+    public AetherServiceImpl()
     {
         this._repoSystem = Booter.newRepositorySystem();
         this._repoSession = Booter.newRepositorySystemSession(_repoSystem);

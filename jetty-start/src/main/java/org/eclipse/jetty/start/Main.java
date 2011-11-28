@@ -38,6 +38,11 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import org.eclipse.jetty.plugins.PluginManager;
+import org.eclipse.jetty.plugins.aether.AetherService;
+import org.eclipse.jetty.plugins.aether.impl.AetherServiceImpl;
+import org.eclipse.jetty.plugins.impl.PluginManagerImpl;
+
 /*-------------------------------------------*/
 /**
  * <p>
@@ -69,6 +74,9 @@ public class Main
     private StartIniParser _startIniParser = new StartIniParser();
 
     private String _jettyHome;
+
+    private AetherService _aetherService = new AetherServiceImpl();
+    private PluginManager _pluginManager = new PluginManagerImpl(_aetherService,_jettyHome);
 
     public static void main(String[] args)
     {

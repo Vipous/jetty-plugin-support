@@ -341,6 +341,7 @@
     <module>jetty-jndi</module>
     <module>jetty-annotations</module>
     <module>jetty-plus</module>
+    <module>jetty-plugins</module>
     <module>jetty-rewrite</module>
     <module>jetty-policy</module>
     <module>jetty-monitor</module>

@@ -21,11 +21,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.jar.JarFile;
 
-import org.eclipse.jetty.plugins.aether.util.Booter;
 import org.junit.Before;
 import org.junit.Test;
-import org.sonatype.aether.RepositorySystem;
-import org.sonatype.aether.RepositorySystemSession;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.collection.DependencyCollectionException;
 import org.sonatype.aether.installation.InstallRequest;
@@ -39,11 +36,9 @@ import org.sonatype.aether.util.artifact.DefaultArtifact;
  */
 public class AetherServiceTest
 {
-    private RepositorySystem _repoSystem = Booter.newRepositorySystem();
-    private RepositorySystemSession _repoSession = Booter.newRepositorySystemSession(_repoSystem);
-
-    AetherServiceImpl _aetherService = new AetherServiceImpl(_repoSystem,_repoSession);
     private static final String JTA_PLUGIN_ARTIFACT_ID = "jetty-plugin-jta";
+
+    private AetherServiceImpl _aetherService = new AetherServiceImpl();
 
     /* ------------------------------------------------------------ */
     /**
@@ -85,6 +80,6 @@ public class AetherServiceTest
     {
         InstallRequest installRequest = new InstallRequest();
         installRequest.addArtifact(artifact);
-        _repoSystem.install(_repoSession,installRequest);
+        _aetherService._repoSystem.install(_aetherService._repoSession,installRequest);
     }
 }

@@ -43,8 +43,8 @@ public class AetherServiceImpl implements AetherService
     static final String GROUP_ID = "org.mortbay.jetty";
     public static final String PLUGIN_LIST_ARTIFACT_ID = "jetty-plugin-list";
 
-    private RepositorySystem _repoSystem;
-    private RepositorySystemSession _repoSession;
+    RepositorySystem _repoSystem;
+    RepositorySystemSession _repoSession;
 
     public AetherServiceImpl()
     {
@@ -121,6 +121,5 @@ public class AetherServiceImpl implements AetherService
         }
         return artifactResult.getArtifact();
     }
-
 
 }

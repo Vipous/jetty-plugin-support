@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.jar.JarFile;
@@ -51,7 +52,8 @@ public class PluginManagerTest
     @Before
     public void setUp() throws Exception
     {
-        _tmpDir = _classLoader.getResource("jetty_home").getFile();
+        URL resource = this.getClass().getResource("/jetty_home");
+        _tmpDir = resource.getFile();
         _pluginManager =  new PluginManagerImpl(_aetherService, _tmpDir);
     }
 

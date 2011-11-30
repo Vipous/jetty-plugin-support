@@ -72,17 +72,17 @@ public class Main
         {
             if (arg.startsWith("--jettyHome="))
                 _jettyHome = arg.substring(12);
-            if (arg.startsWith("--install-plugin="))
-                _installPlugin = arg.substring(17);
+            if (arg.startsWith("--installPlugin="))
+                _installPlugin = arg.substring(16);
             if ("--listPlugins".equals(arg))
                 _listPlugins = true;
         }
         if (_jettyHome == null && _installPlugin != null)
             throw new IllegalArgumentException("No --jettyHome commandline option specified!");
         if (_installPlugin == null && _listPlugins == false)
-            throw new IllegalArgumentException("Neither --install-plugin=<pluginname> nor --list-plugins commandline option specified. Nothing to do for me!");
+            throw new IllegalArgumentException("Neither --installPlugin=<pluginname> nor --list-plugins commandline option specified. Nothing to do for me!");
         if (_installPlugin != null && _listPlugins)
             throw new IllegalArgumentException(
-                    "Please specify either --install-plugin=<pluginname> or --list-plugins commandline options, but not both at the same time!");
+                    "Please specify either --installPlugin=<pluginname> or --list-plugins commandline options, but not both at the same time!");
     }
 }

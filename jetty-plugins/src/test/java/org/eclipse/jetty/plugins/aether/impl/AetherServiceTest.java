@@ -21,15 +21,23 @@ import java.io.IOException;
 import java.util.List;
 import java.util.jar.JarFile;
 
+import org.apache.maven.repository.internal.MavenRepositorySystemSession;
+import org.eclipse.jetty.plugins.aether.util.Booter;
+import org.eclipse.jetty.plugins.aether.util.ConsoleRepositoryListener;
+import org.eclipse.jetty.plugins.aether.util.ConsoleTransferListener;
 import org.junit.Before;
 import org.junit.Test;
+import org.sonatype.aether.RepositorySystem;
+import org.sonatype.aether.RepositorySystemSession;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.collection.DependencyCollectionException;
 import org.sonatype.aether.installation.InstallRequest;
 import org.sonatype.aether.installation.InstallationException;
+import org.sonatype.aether.repository.LocalRepository;
 import org.sonatype.aether.resolution.ArtifactResolutionException;
 import org.sonatype.aether.resolution.DependencyResolutionException;
 import org.sonatype.aether.util.artifact.DefaultArtifact;
+import org.sonatype.aether.util.artifact.SubArtifact;
 
 /* ------------------------------------------------------------ */
 /**
@@ -47,7 +55,8 @@ public class AetherServiceTest
     @Before
     public void setUp() throws Exception
     {
-        installArtifact(AetherServiceImpl.PLUGIN_LIST_ARTIFACT_ID,"/pom.xml");
+        _aetherService._repoSession = newTestRepositorySystemSession(Booter.newRepositorySystem());
+        installArtifact(AetherServiceImpl.PLUGIN_LIST_ARTIFACT_ID,"/jta.jar","/pom.xml");
         installArtifact(JTA_PLUGIN_ARTIFACT_ID,"/jta.jar");
         installArtifact("jetty-plugin-jmx","/jta.jar");
     }
@@ -57,9 +66,9 @@ public class AetherServiceTest
             DependencyResolutionException
     {
         List<String> availablePlugins = _aetherService.listAvailablePlugins();
-        assertTrue(availablePlugins.size() == 2);
-        assertTrue(availablePlugins.contains(JTA_PLUGIN_ARTIFACT_ID));
-        assertTrue(availablePlugins.contains("jetty-plugin-jmx"));
+        assertTrue("Expected to retrieve 2 plugins",availablePlugins.size() == 2);
+        assertTrue(JTA_PLUGIN_ARTIFACT_ID + " missing",availablePlugins.contains(JTA_PLUGIN_ARTIFACT_ID));
+        assertTrue("jetty-plugin-jmx missing", availablePlugins.contains("jetty-plugin-jmx"));
     }
 
     @Test
@@ -69,17 +78,50 @@ public class AetherServiceTest
         assertEquals(plugin.size(),jarFile.size());
     }
 
-    private void installArtifact(String artifactId, String jarFile) throws InstallationException
-    {
-        Artifact artifact = new DefaultArtifact(AetherServiceImpl.GROUP_ID,artifactId,"jar","0.1-SNAPSHOT");
-        artifact = artifact.setFile(new File(this.getClass().getResource(jarFile).getFile()));
-        install(artifact);
+    private void installArtifact(String artifactId, String jarFile, String pomFile) throws InstallationException{
+        Artifact artifact = createArtifact(artifactId,jarFile);
+        Artifact pom = new SubArtifact(artifact,null,"pom");
+        String file = this.getClass().getResource(pomFile).getFile();
+        File file2 = new File(file);
+        pom = pom.setFile(file2);
+        install(artifact, pom);
     }
 
-    private void install(Artifact artifact) throws InstallationException
+    private void installArtifact(String artifactId, String jarFile) throws InstallationException
+    {
+        Artifact artifact = createArtifact(artifactId,jarFile);
+        install(artifact, null);
+    }
+
+    private Artifact createArtifact(String artifactId, String jarFile)
+    {
+        Artifact artifact = new DefaultArtifact(AetherServiceImpl.GROUP_ID,artifactId,"jar","1.0");
+        artifact = artifact.setFile(new File(this.getClass().getResource(jarFile).getFile()));
+        return artifact;
+    }
+
+    private void install(Artifact artifact, Artifact pom) throws InstallationException
     {
         InstallRequest installRequest = new InstallRequest();
-        installRequest.addArtifact(artifact);
+        installRequest.addArtifact(artifact).addArtifact(pom);
+//        if(pom!=null)
+//            installRequest.addArtifact(pom);
         _aetherService._repoSystem.install(_aetherService._repoSession,installRequest);
     }
+
+    private RepositorySystemSession newTestRepositorySystemSession(RepositorySystem system)
+    {
+        MavenRepositorySystemSession session = new MavenRepositorySystemSession();
+
+        LocalRepository localRepo = new LocalRepository("target/local-repo");
+        session.setLocalRepositoryManager(system.newLocalRepositoryManager(localRepo));
+        session.setTransferListener(new ConsoleTransferListener());
+        session.setRepositoryListener(new ConsoleRepositoryListener());
+
+        // uncomment to generate dirty trees
+        // session.setDependencyGraphTransformer( null );
+
+        return session;
+    }
+
 }

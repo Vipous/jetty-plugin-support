@@ -39,7 +39,7 @@ import org.sonatype.aether.util.artifact.DefaultArtifact;
  */
 public class AetherServiceImpl implements AetherService
 {
-    private static final String VERSION = "0.1-SNAPSHOT";
+    private static final String VERSION = "1.0";
     static final String GROUP_ID = "org.mortbay.jetty";
     public static final String PLUGIN_LIST_ARTIFACT_ID = "jetty-plugin-list";
 
@@ -54,7 +54,7 @@ public class AetherServiceImpl implements AetherService
 
     public List<String> listAvailablePlugins()
     {
-        Artifact artifact = new DefaultArtifact(GROUP_ID,PLUGIN_LIST_ARTIFACT_ID,"jar","0.1-SNAPSHOT");
+        Artifact artifact = new DefaultArtifact(GROUP_ID,PLUGIN_LIST_ARTIFACT_ID,"pom",VERSION);
         ArtifactRequest artifactRequest = new ArtifactRequest();
         artifactRequest.setArtifact(artifact);
 
@@ -64,6 +64,8 @@ public class AetherServiceImpl implements AetherService
             Dependency dependency = new Dependency(artifact,"runtime");
 
             CollectRequest collectRequest = new CollectRequest();
+            collectRequest.addRepository(Booter.newRemoteNexusRepository());
+            collectRequest.addRepository(Booter.newCentralRepository());
             collectRequest.setRoot(dependency);
 
             DependencyRequest dependencyRequest = new DependencyRequest();
@@ -110,6 +112,8 @@ public class AetherServiceImpl implements AetherService
         System.out.println("COORDS:" + coords);
         ArtifactRequest artifactRequest = new ArtifactRequest();
         artifactRequest.setArtifact(new DefaultArtifact(coords));
+        artifactRequest.addRepository(Booter.newCentralRepository());
+        artifactRequest.addRepository(Booter.newRemoteNexusRepository());
         ArtifactResult artifactResult;
         try
         {

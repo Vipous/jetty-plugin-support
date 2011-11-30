@@ -3,9 +3,9 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
   xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.eclipse.jetty</groupId>
+  <groupId>org.mortbay.jetty</groupId>
   <artifactId>jetty-plugin-list</artifactId>
-  <version>7.6.0-SNAPSHOT</version>
+  <version>1.0</version>
   <name>jetty-plugins</name>
   <description>Meta artifact containing all available plugins as dependency.</description>
   <url>${jetty.url}</url>
@@ -18,12 +18,12 @@
     <dependency>
       <groupId>org.mortbay.jetty</groupId>
       <artifactId>jetty-plugin-jta</artifactId>
-      <version>0.1-SNAPSHOT</version>
+      <version>1.0</version>
     </dependency>
     <dependency>
       <groupId>org.mortbay.jetty</groupId>
       <artifactId>jetty-plugin-jmx</artifactId>
-      <version>0.1-SNAPSHOT</version>
+      <version>1.0</version>
     </dependency>
   </dependencies>
 </project>

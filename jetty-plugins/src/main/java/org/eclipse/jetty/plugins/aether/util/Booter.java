@@ -31,7 +31,6 @@ public class Booter
 
         LocalRepository localRepo = new LocalRepository("target/local-repo");
         session.setLocalRepositoryManager(system.newLocalRepositoryManager(localRepo));
-
         session.setTransferListener(new ConsoleTransferListener());
         session.setRepositoryListener(new ConsoleRepositoryListener());
 
@@ -49,6 +48,11 @@ public class Booter
     public static RemoteRepository newLocalNexusRepository()
     {
         return new RemoteRepository("nexus","default","http://localhost:8080/nexus/content/groups/public");
+    }
+
+    public static RemoteRepository newRemoteNexusRepository()
+    {
+        return new RemoteRepository("nexus","default","http://gravity-design.de:8080/nexus/content/groups/public");
     }
 
 }

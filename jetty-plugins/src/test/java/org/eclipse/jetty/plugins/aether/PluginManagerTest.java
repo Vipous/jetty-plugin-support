@@ -41,9 +41,8 @@ public class PluginManagerTest
 
     private PluginManager _pluginManager;
 
-    private ClassLoader classLoader = this.getClass().getClassLoader();
-    private String tmpDir = classLoader.getResource("jetty_home").getFile();
-
+    private ClassLoader _classLoader = this.getClass().getClassLoader();
+    private String _tmpDir;
 
     /* ------------------------------------------------------------ */
     /**
@@ -52,7 +51,8 @@ public class PluginManagerTest
     @Before
     public void setUp() throws Exception
     {
-        _pluginManager =  new PluginManagerImpl(_aetherService, tmpDir);
+        _tmpDir = _classLoader.getResource("jetty_home").getFile();
+        _pluginManager =  new PluginManagerImpl(_aetherService, _tmpDir);
     }
 
     @Test
@@ -71,12 +71,12 @@ public class PluginManagerTest
     public void testInstallPlugins() throws IOException
     {
         String pluginName = "jetty-plugin-jta";
-        String jtaPluginJar = classLoader.getResource("jta.jar").getFile();
+        String jtaPluginJar = _classLoader.getResource("jta.jar").getFile();
         when(_aetherService.getPluginJar(pluginName)).thenReturn(new JarFile(new File(jtaPluginJar)));
         _pluginManager.installPlugin(pluginName);
-        assertTrue(new File(tmpDir + File.separator +"etc"+ File.separator +"jetty-hightide.xml").exists());
-        assertTrue(new File(tmpDir + File.separator +"start.d"+ File.separator +"20-jta.ini").exists());
-        assertTrue(new File(tmpDir + File.separator +"lib"+ File.separator +"jta").exists());
+        assertTrue(new File(_tmpDir + File.separator +"etc"+ File.separator +"jetty-hightide.xml").exists());
+        assertTrue(new File(_tmpDir + File.separator +"start.d"+ File.separator +"20-jta.ini").exists());
+        assertTrue(new File(_tmpDir + File.separator +"lib"+ File.separator +"jta").exists());
     }
 
 }

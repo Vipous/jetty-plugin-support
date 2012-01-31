@@ -38,7 +38,6 @@ import org.eclipse.jetty.http.HttpVersions;
 import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.http.Parser;
 import org.eclipse.jetty.io.AbstractConnection;
-import org.eclipse.jetty.io.AsyncEndPoint;
 import org.eclipse.jetty.io.Buffer;
 import org.eclipse.jetty.io.BufferCache.CachedBuffer;
 import org.eclipse.jetty.io.Buffers;
@@ -55,7 +54,6 @@ import org.eclipse.jetty.util.URIUtil;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.resource.Resource;
-import org.eclipse.jetty.util.thread.Timeout;
 
 /**
  * <p>A HttpConnection represents the connection of a HTTP client to the server
@@ -104,14 +102,14 @@ public abstract class AbstractHttpConnection  extends AbstractConnection
     protected final Parser _parser;
     protected final HttpFields _requestFields;
     protected final Request _request;
-    protected ServletInputStream _in;
+    protected volatile ServletInputStream _in;
 
     protected final Generator _generator;
     protected final HttpFields _responseFields;
     protected final Response _response;
-    protected Output _out;
-    protected OutputWriter _writer;
-    protected PrintWriter _printWriter;
+    protected volatile Output _out;
+    protected volatile OutputWriter _writer;
+    protected volatile PrintWriter _printWriter;
 
     int _include;
 
@@ -124,7 +122,7 @@ public abstract class AbstractHttpConnection  extends AbstractConnection
     private boolean _expect102Processing = false;
     private boolean _head = false;
     private boolean _host = false;
-    private boolean  _delayedHandling=false;
+    private boolean _delayedHandling=false;
 
     /* ------------------------------------------------------------ */
     public static AbstractHttpConnection getCurrentConnection()
@@ -357,7 +355,27 @@ public abstract class AbstractHttpConnection  extends AbstractConnection
         if (_writer==null)
         {
             _writer=new OutputWriter();
-            _printWriter=new UncheckedPrintWriter(_writer);
+            if (_server.isUncheckedPrintWriter())
+                _printWriter=new UncheckedPrintWriter(_writer);
+            else
+                _printWriter = new PrintWriter(_writer)
+                {
+                    public void close()
+                    {
+                        synchronized (lock)
+                        {
+                            try
+                            {
+                                out.close();
+                            }
+                            catch (IOException e)
+                            {
+                                setError();
+                            }
+                        }
+                    }
+                };
+
         }
         _writer.setCharacterEncoding(encoding);
         return _printWriter;
@@ -458,10 +476,6 @@ public abstract class AbstractHttpConnection  extends AbstractConnection
                     error=true;
                     _request.setHandled(true);
                     _response.sendError(e.getStatus(), e.getReason());
-                }
-                catch (ThreadDeath e)
-                {
-                    throw e;
                 }
                 catch (Throwable e)
                 {
@@ -680,7 +694,11 @@ public abstract class AbstractHttpConnection  extends AbstractConnection
     /* ------------------------------------------------------------ */
     public String toString()
     {
-        return super.toString()+" "+_parser+" "+_generator+" "+_requests;
+        return String.format("%s,g=%s,p=%s,r=%d",
+                super.toString(),
+                _generator,
+                _parser,
+                _requests);
     }
 
     /* ------------------------------------------------------------ */
@@ -826,8 +844,6 @@ public abstract class AbstractHttpConnection  extends AbstractConnection
         @Override
         public void headerComplete() throws IOException
         {
-            if (_endp instanceof AsyncEndPoint)
-                ((AsyncEndPoint)_endp).scheduleIdle();
             _requests++;
             _generator.setVersion(_version);
             switch (_version)
@@ -903,8 +919,6 @@ public abstract class AbstractHttpConnection  extends AbstractConnection
         @Override
         public void content(Buffer ref) throws IOException
         {
-            if (_endp instanceof AsyncEndPoint)
-                ((AsyncEndPoint)_endp).scheduleIdle();
             if (_delayedHandling)
             {
                 _delayedHandling=false;

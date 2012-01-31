@@ -24,6 +24,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -260,7 +261,7 @@ public abstract class SelectorManager extends AbstractLifeCycle implements Dumpa
         for (int i=0;i<getSelectSets();i++)
         {
             final int id=i;
-            dispatch(new Runnable()
+            boolean selecting=dispatch(new Runnable()
             {
                 public void run()
                 {
@@ -283,10 +284,6 @@ public abstract class SelectorManager extends AbstractLifeCycle implements Dumpa
                             {
                                 set.doSelect();
                             }
-                            catch(ThreadDeath e)
-                            {
-                                throw e;
-                            }
                             catch(IOException e)
                             {
                                 LOG.ignore(e);
@@ -307,6 +304,9 @@ public abstract class SelectorManager extends AbstractLifeCycle implements Dumpa
                 }
 
             });
+
+            if (!selecting)
+                throw new IllegalStateException("!Selecting");
         }
     }
 
@@ -373,7 +373,7 @@ public abstract class SelectorManager extends AbstractLifeCycle implements Dumpa
     /* ------------------------------------------------------------ */
     public void dump(Appendable out, String indent) throws IOException
     {
-        out.append(String.valueOf(this)).append("\n");
+        AggregateLifeCycle.dumpObject(out,this);
         AggregateLifeCycle.dump(out,indent,TypeUtil.asList(_selectSet));
     }
 
@@ -444,7 +444,7 @@ public abstract class SelectorManager extends AbstractLifeCycle implements Dumpa
                 // Stopped concurrently ?
                 if (selector == null)
                     return;
-                
+
                 // Make any key changes required
                 Object change;
                 int changes=_changes.size();
@@ -506,10 +506,6 @@ public abstract class SelectorManager extends AbstractLifeCycle implements Dumpa
                     catch (CancelledKeyException e)
                     {
                         LOG.ignore(e);
-                    }
-                    catch (ThreadDeath e)
-                    {
-                        throw e;
                     }
                     catch (Throwable e)
                     {
@@ -578,7 +574,7 @@ public abstract class SelectorManager extends AbstractLifeCycle implements Dumpa
                             {
                                 // Start injecting pauses
                                 _pausing=true;
-                                
+
                                 // if this is the first pause
                                 if (!_paused)
                                 {
@@ -715,16 +711,16 @@ public abstract class SelectorManager extends AbstractLifeCycle implements Dumpa
                         }
                         public String toString() {return "Idle-"+super.toString();}
                     });
-                    
+
                 }
-                
+
                 // Reset busy select monitor counts
                 if (__MONITOR_PERIOD>0 && now>_monitorNext)
                 {
                     _busySelects=0;
                     _pausing=false;
                     _monitorNext=now+__MONITOR_PERIOD;
-                    
+
                 }
             }
             catch (ClosedSelectorException e)
@@ -965,6 +961,7 @@ public abstract class SelectorManager extends AbstractLifeCycle implements Dumpa
                 {
                     LOG.ignore(e);
                 }
+
                 AggregateLifeCycle.dump(out,indent,dump);
             }
         }
@@ -973,24 +970,25 @@ public abstract class SelectorManager extends AbstractLifeCycle implements Dumpa
         public void dumpKeyState(List<Object> dumpto)
         {
             Selector selector=_selector;
-            dumpto.add(selector+" keys="+selector.keys().size());
-            for (SelectionKey key: selector.keys())
+            Set<SelectionKey> keys = selector.keys();
+            dumpto.add(selector + " keys=" + keys.size());
+            for (SelectionKey key: keys)
             {
                 if (key.isValid())
-                    dumpto.add(key.attachment()+" "+key.interestOps()+" "+key.readyOps());
+                    dumpto.add(key.attachment()+" iOps="+key.interestOps()+" rOps="+key.readyOps());
                 else
-                    dumpto.add(key.attachment()+" - - ");
+                    dumpto.add(key.attachment()+" iOps=-1 rOps=-1");
             }
         }
 
         /* ------------------------------------------------------------ */
         public String toString()
         {
-            String s=super.toString()+" "+SelectorManager.this.getState();
             Selector selector=_selector;
-            if (selector!=null && selector.isOpen())
-                s+=",k="+selector.keys().size()+",s="+selector.selectedKeys().size();
-            return s;
+            return String.format("%s keys=%d selected=%d",
+                    super.toString(),
+                    selector != null && selector.isOpen() ? selector.keys().size() : -1,
+                    selector != null && selector.isOpen() ? selector.selectedKeys().size() : -1);
         }
     }
 

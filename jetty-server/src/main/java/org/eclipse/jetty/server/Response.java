@@ -53,6 +53,7 @@ public class Response implements HttpServletResponse
 {
     private static final Logger LOG = Log.getLogger(Response.class);
 
+    
     public static final int
         NONE=0,
         STREAM=1,
@@ -65,6 +66,12 @@ public class Response implements HttpServletResponse
      */
     public final static String SET_INCLUDE_HEADER_PREFIX = "org.eclipse.jetty.server.include.";
 
+    /**
+     * If this string is found within the comment of a cookie added with {@link #addCookie(Cookie)}, then the cookie 
+     * will be set as HTTP ONLY.
+     */
+    public final static String HTTP_ONLY_COMMENT="__HTTP_ONLY__";
+    
     private final AbstractHttpConnection _connection;
     private int _status=SC_OK;
     private String _reason;
@@ -74,7 +81,7 @@ public class Response implements HttpServletResponse
     private String _characterEncoding;
     private boolean _explicitEncoding;
     private String _contentType;
-    private int _outputState;
+    private volatile int _outputState;
     private PrintWriter _writer;
 
     /* ------------------------------------------------------------ */
@@ -101,8 +108,8 @@ public class Response implements HttpServletResponse
         _characterEncoding=null;
         _explicitEncoding=false;
         _contentType=null;
-        _outputState=NONE;
         _writer=null;
+        _outputState=NONE;
     }
 
     /* ------------------------------------------------------------ */
@@ -120,14 +127,28 @@ public class Response implements HttpServletResponse
      */
     public void addCookie(Cookie cookie)
     {
+        String comment=cookie.getComment();
+        boolean http_only=false;
+        
+        if (comment!=null)
+        {
+            int i=comment.indexOf(HTTP_ONLY_COMMENT);
+            if (i>=0)
+            {
+                http_only=true;
+                comment=comment.substring(i,i+HTTP_ONLY_COMMENT.length()).trim();
+                if (comment.length()==0)
+                    comment=null;
+            }
+        }
         _connection.getResponseFields().addSetCookie(cookie.getName(),
                 cookie.getValue(),
                 cookie.getDomain(),
                 cookie.getPath(),
                 cookie.getMaxAge(),
-                cookie.getComment(),
+                comment,
                 cookie.getSecure(),
-                false,//cookie.isHttpOnly(),
+                http_only,// || cookie.isHttpOnly(),
                 cookie.getVersion());
     }
 
@@ -445,7 +466,6 @@ public class Response implements HttpServletResponse
             }
         }
         
-        location=encodeRedirectURL(location);
         resetBuffer();
         setHeader(HttpHeaders.LOCATION,location);
         setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
@@ -626,8 +646,9 @@ public class Response implements HttpServletResponse
         if (_outputState!=NONE && _outputState!=STREAM)
             throw new IllegalStateException("WRITER");
 
+        ServletOutputStream out = _connection.getOutputStream();
         _outputState=STREAM;
-        return _connection.getOutputStream();
+        return out;
     }
 
     /* ------------------------------------------------------------ */
@@ -1045,8 +1066,8 @@ public class Response implements HttpServletResponse
     {
         resetBuffer();
 
-        _outputState=NONE;
         _writer=null;
+        _outputState=NONE;
     }
 
     /* ------------------------------------------------------------ */

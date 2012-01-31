@@ -11,14 +11,14 @@ public abstract class AbstractConnection implements Connection
     private static final Logger LOG = Log.getLogger(AbstractConnection.class);
 
     private final long _timeStamp;
-    protected final EndPoint _endp; 
+    protected final EndPoint _endp;
 
     public AbstractConnection(EndPoint endp)
     {
         _endp=(EndPoint)endp;
         _timeStamp = System.currentTimeMillis();
     }
-    
+
     public AbstractConnection(EndPoint endp,long timestamp)
     {
         _endp=(EndPoint)endp;
@@ -29,17 +29,21 @@ public abstract class AbstractConnection implements Connection
     {
         return _timeStamp;
     }
-    
+
     public EndPoint getEndPoint()
     {
         return _endp;
     }
 
-    public void onIdleExpired()
+    public void onIdleExpired(long idleForMs)
     {
         try
         {
-            _endp.shutdownOutput();
+            LOG.debug("onIdleExpired {}ms {} {}",idleForMs,this,_endp);
+            if (_endp.isInputShutdown() || _endp.isOutputShutdown())
+                _endp.close();
+            else
+                _endp.shutdownOutput();
         }
         catch(IOException e)
         {
@@ -52,13 +56,12 @@ public abstract class AbstractConnection implements Connection
             catch(IOException e2)
             {
                 LOG.ignore(e2);
-                
             }
         }
     }
-    
+
     public String toString()
     {
-        return this.getClass().getSimpleName()+"@"+_endp.getLocalAddr()+":"+_endp.getLocalPort()+"<->"+_endp.getRemoteAddr()+":"+_endp.getRemotePort();
+        return String.format("%s@%x", getClass().getSimpleName(), hashCode());
     }
 }

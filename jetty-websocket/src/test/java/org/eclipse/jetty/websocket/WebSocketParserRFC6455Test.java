@@ -1,8 +1,19 @@
+/*******************************************************************************
+ * Copyright (c) 2011 Intalio, Inc.
+ * ======================================================================
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * and Apache License v2.0 which accompanies this distribution.
+ *
+ *   The Eclipse Public License is available at
+ *   http://www.eclipse.org/legal/epl-v10.html
+ *
+ *   The Apache License v2.0 is available at
+ *   http://www.opensource.org/licenses/apache2.0.php
+ *
+ * You may elect to redistribute this code under either of these licenses.
+ *******************************************************************************/
 package org.eclipse.jetty.websocket;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,15 +28,16 @@ import org.eclipse.jetty.util.Utf8StringBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-/**
- * @version $Revision$ $Date$
- */
-public class WebSocketParserD13Test
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+public class WebSocketParserRFC6455Test
 {
     private ByteArrayEndPoint _endPoint;
     private MaskedByteArrayBuffer _in;
     private Handler _handler;
-    private WebSocketParserD13 _parser;
+    private WebSocketParserRFC6455 _parser;
     private byte[] _mask = new byte[] {(byte)0x00,(byte)0xF0,(byte)0x0F,(byte)0xFF};
     private int _m;
 
@@ -35,7 +47,7 @@ public class WebSocketParserD13Test
         {
             super(4096);
         }
-        
+
         public void sendMask()
         {
             super.poke(putIndex(),_mask,0,4);
@@ -53,7 +65,7 @@ public class WebSocketParserD13Test
         {
             super.put(b);
         }
-        
+
         @Override
         public void put(byte b)
         {
@@ -77,10 +89,10 @@ public class WebSocketParserD13Test
         {
             return put(b,0,b.length);
         }
-        
+
     };
-    
-    
+
+
     @Before
     public void setUp() throws Exception
     {
@@ -88,10 +100,10 @@ public class WebSocketParserD13Test
         _endPoint = new ByteArrayEndPoint();
         _endPoint.setNonBlocking(true);
         _handler = new Handler();
-        _parser=new WebSocketParserD13(buffers, _endPoint,_handler,true);
+        _parser=new WebSocketParserRFC6455(buffers, _endPoint,_handler,true);
         _parser.setFakeFragments(false);
         _in = new MaskedByteArrayBuffer();
-        
+
         _endPoint.setIn(_in);
     }
 
@@ -117,7 +129,7 @@ public class WebSocketParserD13Test
         _parser.returnBuffer();
         assertTrue(_parser.getBuffer()==null);
     }
-    
+
     @Test
     public void testShortText() throws Exception
     {
@@ -137,7 +149,7 @@ public class WebSocketParserD13Test
         _parser.returnBuffer();
         assertTrue(_parser.getBuffer()==null);
     }
-    
+
     @Test
     public void testShortUtf8() throws Exception
     {
@@ -159,7 +171,7 @@ public class WebSocketParserD13Test
         assertTrue(_parser.isBufferEmpty());
         assertTrue(_parser.getBuffer()==null);
     }
-    
+
     @Test
     public void testMediumText() throws Exception
     {
@@ -167,9 +179,9 @@ public class WebSocketParserD13Test
         for (int i=0;i<4;i++)
             string = string+string;
         string += ". The end.";
-        
+
         byte[] bytes = string.getBytes(StringUtil.__UTF8);
-        
+
         _in.putUnmasked((byte)0x81);
         _in.putUnmasked((byte)(0x80|0x7E));
         _in.putUnmasked((byte)(bytes.length>>8));
@@ -187,21 +199,21 @@ public class WebSocketParserD13Test
         assertTrue(_parser.isBufferEmpty());
         assertTrue(_parser.getBuffer()==null);
     }
-    
+
     @Test
     public void testLongText() throws Exception
     {
         WebSocketBuffers buffers = new WebSocketBuffers(0x20000);
         ByteArrayEndPoint endPoint = new ByteArrayEndPoint();
-        WebSocketParserD13 parser=new WebSocketParserD13(buffers, endPoint,_handler,false);
+        WebSocketParserRFC6455 parser=new WebSocketParserRFC6455(buffers, endPoint,_handler,false);
         ByteArrayBuffer in = new ByteArrayBuffer(0x20000);
         endPoint.setIn(in);
-        
+
         String string = "Hell\uFF4f Big W\uFF4Frld ";
         for (int i=0;i<12;i++)
             string = string+string;
         string += ". The end.";
-        
+
         byte[] bytes = string.getBytes("UTF-8");
 
         _in.sendMask();
@@ -259,7 +271,7 @@ public class WebSocketParserD13Test
     {
         // Buffers are only 1024, so this frame is too large
         _parser.setFakeFragments(false);
-        
+
         _in.putUnmasked((byte)0x81);
         _in.putUnmasked((byte)(0x80|0x7E));
         _in.putUnmasked((byte)(2048>>8));
@@ -269,9 +281,9 @@ public class WebSocketParserD13Test
         int progress =_parser.parseNext();
 
         assertTrue(progress>0);
-        assertEquals(WebSocketConnectionD13.CLOSE_POLICY_VIOLATION,_handler._code);
-        
-        
+        assertEquals(WebSocketConnectionRFC6455.CLOSE_POLICY_VIOLATION,_handler._code);
+
+
         for (int i=0;i<2048;i++)
             _in.put((byte)'a');
         progress =_parser.parseNext();
@@ -279,7 +291,7 @@ public class WebSocketParserD13Test
         assertTrue(progress>0);
         assertEquals(0,_handler._data.size());
         assertEquals(0,_handler._utf8.length());
-        
+
         _handler._code=0;
 
         _in.putUnmasked((byte)0x81);
@@ -300,7 +312,7 @@ public class WebSocketParserD13Test
     {
         // Buffers are only 1024, so this frame will be fake fragmented
         _parser.setFakeFragments(true);
-        
+
         _in.putUnmasked((byte)0x81);
         _in.putUnmasked((byte)(0x80|0x7E));
         _in.putUnmasked((byte)(2048>>8));
@@ -308,12 +320,12 @@ public class WebSocketParserD13Test
         _in.sendMask();
         for (int i=0;i<2048;i++)
             _in.put((byte)('a'+i%26));
-        
+
         int progress =_parser.parseNext();
         assertTrue(progress>0);
 
         assertEquals(2,_handler._frames);
-        assertEquals(WebSocketConnectionD13.OP_CONTINUATION,_handler._opcode);
+        assertEquals(WebSocketConnectionRFC6455.OP_CONTINUATION,_handler._opcode);
         assertEquals(1,_handler._data.size());
         String mesg=_handler._data.remove(0);
 
@@ -345,21 +357,21 @@ public class WebSocketParserD13Test
         _parser.returnBuffer();
         assertTrue(_parser.isBufferEmpty());
         assertTrue(_parser.getBuffer()==null);
-        
+
         _in.clear();
         _in.put(bytes);
         _endPoint.setIn(_in);
         progress =_parser.parseNext();
         assertTrue(progress>0);
-        
+
         _endPoint.shutdownInput();
-        
+
         progress =_parser.parseNext();
         assertEquals(-1,progress);
-        
+
     }
-    
-    
+
+
     private class Handler implements WebSocketParser.FrameHandler
     {
         Utf8StringBuilder _utf8 = new Utf8StringBuilder();

@@ -45,6 +45,7 @@ public class AsyncHttpConnection extends AbstractHttpConnection implements Async
         _asyncEndp=(AsyncEndPoint)endpoint;
     }
 
+    @Override
     public Connection handle() throws IOException
     {
         Connection connection = this;
@@ -55,6 +56,10 @@ public class AsyncHttpConnection extends AbstractHttpConnection implements Async
         {
             setCurrentConnection(this);
 
+            // don't check for idle while dispatched (unless blocking IO is done).
+            _asyncEndp.setCheckForIdle(false);
+
+
             // While progress and the connection has not changed
             while (progress && connection==this)
             {
@@ -62,8 +67,11 @@ public class AsyncHttpConnection extends AbstractHttpConnection implements Async
                 try
                 {
                     // Handle resumed request
-                    if (_request._async.isAsync() && !_request._async.isComplete())
-                        handleRequest();
+                    if (_request._async.isAsync())
+                    {
+                       if (_request._async.isDispatchable())
+                           handleRequest();
+                    }
                     // else Parse more input
                     else if (!_parser.isComplete() && _parser.parseAvailable())
                         progress=true;
@@ -79,7 +87,6 @@ public class AsyncHttpConnection extends AbstractHttpConnection implements Async
                     // Has any IO been done by the endpoint itself since last loop
                     if (_asyncEndp.hasProgressed())
                         progress=true;
-
                 }
                 catch (HttpException e)
                 {
@@ -120,9 +127,10 @@ public class AsyncHttpConnection extends AbstractHttpConnection implements Async
                     }
                     else if (_request.getAsyncContinuation().isAsyncStarted())
                     {
-                        // The request is suspended, so even though progress has been made, break the while loop
+                        // The request is suspended, so even though progress has been made,
+                        // exit the while loop by setting progress to false
                         LOG.debug("suspended {}",this);
-                        break;
+                        progress=false;
                     }
                 }
             }
@@ -130,12 +138,18 @@ public class AsyncHttpConnection extends AbstractHttpConnection implements Async
         finally
         {
             setCurrentConnection(null);
-            if (!_request.isAsyncStarted())
-            { 
+
+            // If we are not suspended
+            if (!_request.getAsyncContinuation().isAsyncStarted())
+            {
+                // return buffers
                 _parser.returnBuffers();
                 _generator.returnBuffers();
+
+                // reenable idle checking unless request is suspended
+                _asyncEndp.setCheckForIdle(true);
             }
-            
+
             // Safety net to catch spinning
             if (some_progress)
                 _total_no_progress=0;
@@ -163,6 +177,10 @@ public class AsyncHttpConnection extends AbstractHttpConnection implements Async
             // then no more can happen, so close.
             _endp.close();
         }
+        
+        // Make idle parser seek EOF
+        if (_parser.isIdle())
+            _parser.setPersistent(false);
     }
 
 }

@@ -19,6 +19,8 @@ import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -37,11 +39,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-
-import org.eclipse.jetty.plugins.PluginManager;
-import org.eclipse.jetty.plugins.aether.AetherService;
-import org.eclipse.jetty.plugins.aether.impl.AetherServiceImpl;
-import org.eclipse.jetty.plugins.impl.PluginManagerImpl;
 
 /*-------------------------------------------*/
 /**
@@ -68,211 +65,245 @@ public class Main
     private boolean _dryRun = false;
     private boolean _exec = false;
     private final Config _config = new Config();
-    private Set<String> _sysProps = new HashSet<String>();
-    private List<String> _jvmArgs = new ArrayList<String>();
+    private final Set<String> _sysProps = new HashSet<String>();
+    private final List<String> _jvmArgs = new ArrayList<String>();
     private String _startConfig = null;
-    private StartIniParser _startIniParser = new StartIniParser();
 
     private String _jettyHome;
 
-    private AetherService _aetherService = new AetherServiceImpl();
-    private PluginManager _pluginManager = new PluginManagerImpl(_aetherService,_jettyHome);
-
-    public static void main(String[] args)
-    {
-        Main main = new Main();
-        main.parseCommandLine(args);
-    }
-
-    public void parseCommandLine(String[] args)
+    public static void main(String[] args) 
     {
         try
         {
-            List<String> arguments = new ArrayList<String>();
-
-            // add the command line args and look for start.ini args
-            boolean ini = false;
-            for (String arg : args)
-            {
-                if (arg.startsWith("--ini=") || arg.equals("--ini"))
-                {
-                    ini = true;
-                    if (arg.length() > 6)
-                    {
-                        arguments.addAll(_startIniParser.loadStartIni(arg.substring(6)));
-                        continue;
-                    }
-                }
-                else if (arg.startsWith("--config="))
-                {
-                    _startConfig = arg.substring(9);
-                }
-                else
-                {
-                    arguments.add(arg);
-                }
-            }
-
-            // if no non-option inis, add the start.ini
-            if (!ini)
-            {
-                arguments.addAll(0,_startIniParser.loadStartIni(null));
-            }
-
-            // The XML Configuration Files to initialize with
-            List<String> xmls = new ArrayList<String>();
-
-            // Process the arguments
-            int startup = 0;
-            for (String arg : arguments)
-            {
-                if ("--help".equals(arg) || "-?".equals(arg))
-                {
-                    _showUsage = true;
-                    continue;
-                }
-
-                if ("--stop".equals(arg))
-                {
-                    int port = Integer.parseInt(Config.getProperty("STOP.PORT","-1"));
-                    String key = Config.getProperty("STOP.KEY",null);
-                    stop(port,key);
-                    return;
-                }
-
-                if ("--version".equals(arg) || "-v".equals(arg) || "--info".equals(arg))
-                {
-                    _dumpVersions = true;
-                    continue;
-                }
-
-                if ("--list-modes".equals(arg) || "--list-options".equals(arg))
-                {
-                    _listOptions = true;
-                    continue;
-                }
-
-                if ("--list-config".equals(arg))
-                {
-                    _listConfig = true;
-                    continue;
-                }
-
-                if ("--exec-print".equals(arg) || "--dry-run".equals(arg))
-                {
-                    _dryRun = true;
-                    continue;
-                }
-
-                if ("--exec".equals(arg))
-                {
-                    _exec = true;
-                    continue;
-                }
-
-                // Special internal indicator that jetty was started by the jetty.sh Daemon
-                if ("--daemon".equals(arg))
-                {
-                    File startDir = new File(System.getProperty("jetty.logs","logs"));
-                    if (!startDir.exists() || !startDir.canWrite())
-                        startDir = new File(".");
-                    File startLog = new File(startDir,"start.log");
-                    if (!startLog.exists() && !startLog.createNewFile())
-                    {
-                        // Output about error is lost in majority of cases.
-                        System.err.println("Unable to create: " + startLog.getAbsolutePath());
-                        // Toss a unique exit code indicating this failure.
-                        usageExit(ERR_LOGGING);
-                    }
-
-                    if (!startLog.canWrite())
-                    {
-                        // Output about error is lost in majority of cases.
-                        System.err.println("Unable to write to: " + startLog.getAbsolutePath());
-                        // Toss a unique exit code indicating this failure.
-                        usageExit(ERR_LOGGING);
-                    }
-                    PrintStream logger = new PrintStream(new FileOutputStream(startLog,false));
-                    System.setOut(logger);
-                    System.setErr(logger);
-                    System.out.println("Establishing start.log on " + new Date());
-                    continue;
-                }
-
-                if (arg.startsWith("--pre="))
-                {
-                    xmls.add(startup++,arg.substring(6));
-                    continue;
-                }
-
-                if (arg.startsWith("-D"))
-                {
-                    String[] assign = arg.substring(2).split("=",2);
-                    _sysProps.add(assign[0]);
-                    switch (assign.length)
-                    {
-                        case 2:
-                            System.setProperty(assign[0],assign[1]);
-                            break;
-                        case 1:
-                            System.setProperty(assign[0],"");
-                            break;
-                        default:
-                            break;
-                    }
-                    continue;
-                }
-
-                if (arg.startsWith("-"))
-                {
-                    _jvmArgs.add(arg);
-                    continue;
-                }
-
-                // Is this a Property?
-                if (arg.indexOf('=') >= 0)
-                {
-                    String[] assign = arg.split("=",2);
-
-                    switch (assign.length)
-                    {
-                        case 2:
-                            if ("OPTIONS".equals(assign[0]))
-                            {
-                                String opts[] = assign[1].split(",");
-                                for (String opt : opts)
-                                    _config.addActiveOption(opt);
-                            }
-                            else
-                            {
-                                this._config.setProperty(assign[0],assign[1]);
-                            }
-                            break;
-                        case 1:
-                            this._config.setProperty(assign[0],null);
-                            break;
-                        default:
-                            break;
-                    }
-
-                    continue;
-                }
-
-                // Anything else is considered an XML file.
-                if (xmls.contains(arg))
-                {
-                    System.out.println("WARN: Argument '" + arg + "' specified multiple times. Check start.ini?");
-                    System.out.println("Use \"java -jar start.jar --help\" for more information.");
-                }
-                xmls.add(arg);
-            }
-
-            start(xmls);
+            Main main = new Main();
+            List<String> arguments = main.expandCommandLine(args);
+            List<String> xmls = main.processCommandLine(arguments);
+            if (xmls!=null)
+                main.start(xmls);
         }
-        catch (Throwable t)
+        catch (Throwable e)
         {
-            usageExit(t,ERR_UNKNOWN);
+            usageExit(e,ERR_UNKNOWN);
         }
+    }
+
+    Main() throws IOException
+    {
+        _jettyHome = System.getProperty("jetty.home",".");
+        _jettyHome = new File(_jettyHome).getCanonicalPath();
+    }
+
+    public List<String> expandCommandLine(String[] args) throws Exception
+    {
+        List<String> arguments = new ArrayList<String>();
+
+        // add the command line args and look for start.ini args
+        boolean ini = false;
+        for (String arg : args)
+        {
+            if (arg.startsWith("--ini=") || arg.equals("--ini"))
+            {
+                ini = true;
+                if (arg.length() > 6)
+                {
+                    arguments.addAll(loadStartIni(new File(arg.substring(6))));
+                    continue;
+                }
+            }
+            else if (arg.startsWith("--config="))
+            {
+                _startConfig = arg.substring(9);
+            }
+            else
+            {
+                arguments.add(arg);
+            }
+        }
+
+        // if no non-option inis, add the start.ini and start.d
+        if (!ini)
+        {
+            arguments.addAll(0,parseStartIniFiles());
+        }
+
+        return arguments;
+    }
+
+    List<String> parseStartIniFiles()
+    {
+        List<String> ini_args=new ArrayList<String>();
+        File start_ini = new File(_jettyHome,"start.ini");
+        if (start_ini.exists())
+            ini_args.addAll(loadStartIni(start_ini));
+
+        File start_d = new File(_jettyHome,"start.d");
+        if (start_d.isDirectory())
+        {
+            File[] inis = start_d.listFiles(new FilenameFilter()
+            {
+                public boolean accept(File dir, String name)
+                {
+                    return name.toLowerCase().endsWith(".ini");
+                }
+            });
+            Arrays.sort(inis);
+            for (File i : inis)
+                ini_args.addAll(loadStartIni(i));
+        }
+        return ini_args;
+    }
+    
+    public List<String> processCommandLine(List<String> arguments) throws Exception
+    {
+        // The XML Configuration Files to initialize with
+        List<String> xmls = new ArrayList<String>();
+
+        // Process the arguments
+        int startup = 0;
+        for (String arg : arguments)
+        {
+            if ("--help".equals(arg) || "-?".equals(arg))
+            {
+                _showUsage = true;
+                continue;
+            }
+
+            if ("--stop".equals(arg))
+            {
+                int port = Integer.parseInt(Config.getProperty("STOP.PORT","-1"));
+                String key = Config.getProperty("STOP.KEY",null);
+                stop(port,key);
+                return null;
+            }
+
+            if ("--version".equals(arg) || "-v".equals(arg) || "--info".equals(arg))
+            {
+                _dumpVersions = true;
+                continue;
+            }
+
+            if ("--list-modes".equals(arg) || "--list-options".equals(arg))
+            {
+                _listOptions = true;
+                continue;
+            }
+
+            if ("--list-config".equals(arg))
+            {
+                _listConfig = true;
+                continue;
+            }
+
+            if ("--exec-print".equals(arg) || "--dry-run".equals(arg))
+            {
+                _dryRun = true;
+                continue;
+            }
+
+            if ("--exec".equals(arg))
+            {
+                _exec = true;
+                continue;
+            }
+
+            // Special internal indicator that jetty was started by the jetty.sh Daemon
+            if ("--daemon".equals(arg))
+            {
+                File startDir = new File(System.getProperty("jetty.logs","logs"));
+                if (!startDir.exists() || !startDir.canWrite())
+                    startDir = new File(".");
+                File startLog = new File(startDir,"start.log");
+                if (!startLog.exists() && !startLog.createNewFile())
+                {
+                    // Output about error is lost in majority of cases.
+                    System.err.println("Unable to create: " + startLog.getAbsolutePath());
+                    // Toss a unique exit code indicating this failure.
+                    usageExit(ERR_LOGGING);
+                }
+
+                if (!startLog.canWrite())
+                {
+                    // Output about error is lost in majority of cases.
+                    System.err.println("Unable to write to: " + startLog.getAbsolutePath());
+                    // Toss a unique exit code indicating this failure.
+                    usageExit(ERR_LOGGING);
+                }
+                PrintStream logger = new PrintStream(new FileOutputStream(startLog,false));
+                System.setOut(logger);
+                System.setErr(logger);
+                System.out.println("Establishing start.log on " + new Date());
+                continue;
+            }
+
+            if (arg.startsWith("--pre="))
+            {
+                xmls.add(startup++,arg.substring(6));
+                continue;
+            }
+
+            if (arg.startsWith("-D"))
+            {
+                String[] assign = arg.substring(2).split("=",2);
+                _sysProps.add(assign[0]);
+                switch (assign.length)
+                {
+                    case 2:
+                        System.setProperty(assign[0],assign[1]);
+                        break;
+                    case 1:
+                        System.setProperty(assign[0],"");
+                        break;
+                    default:
+                        break;
+                }
+                continue;
+            }
+
+            if (arg.startsWith("-"))
+            {
+                _jvmArgs.add(arg);
+                continue;
+            }
+
+            // Is this a Property?
+            if (arg.indexOf('=') >= 0)
+            {
+                String[] assign = arg.split("=",2);
+
+                switch (assign.length)
+                {
+                    case 2:
+                        if ("OPTIONS".equals(assign[0]))
+                        {
+                            String opts[] = assign[1].split(",");
+                            for (String opt : opts)
+                                _config.addActiveOption(opt);
+                        }
+                        else
+                        {
+                            this._config.setProperty(assign[0],assign[1]);
+                        }
+                        break;
+                    case 1:
+                        this._config.setProperty(assign[0],null);
+                        break;
+                    default:
+                        break;
+                }
+
+                continue;
+            }
+
+            // Anything else is considered an XML file.
+            if (xmls.contains(arg))
+            {
+                System.out.println("WARN: Argument '" + arg + "' specified multiple times. Check start.ini?");
+                System.out.println("Use \"java -jar start.jar --help\" for more information.");
+            }
+            xmls.add(arg);
+        }
+
+        return xmls;
     }
 
     private void usage()
@@ -350,7 +381,7 @@ public class Main
                     }
                     else if (info.equals("@STARTINI"))
                     {
-                        List<String> ini = _startIniParser.loadStartIni(null);
+                        List<String> ini = loadStartIni(null);
                         if (ini != null && ini.size() > 0)
                         {
                             for (String a : ini)
@@ -510,29 +541,31 @@ public class Main
         // Show Command Line to execute Jetty
         if (_dryRun)
         {
-            System.out.println(buildCommandLine(classpath,configuredXmls));
+            CommandLineBuilder cmd = buildCommandLine(classpath,configuredXmls);
+            System.out.println(cmd.toString());
             return;
         }
 
         // execute Jetty in another JVM
         if (_exec)
         {
-            String cmd = buildCommandLine(classpath,configuredXmls);
-            final Process process = Runtime.getRuntime().exec(cmd);
-            Runtime.getRuntime().addShutdownHook(new Thread()
+            CommandLineBuilder cmd = buildCommandLine(classpath,configuredXmls);
+            ProcessBuilder pbuilder = new ProcessBuilder(cmd.getArgs());
+            final Process process = pbuilder.start();
+            
+            try
             {
-                @Override
-                public void run()
-                {
-                    Config.debug("Destroying " + process);
-                    process.destroy();
-                }
-            });
-            copyInThread(process.getErrorStream(),System.err);
-            copyInThread(process.getInputStream(),System.out);
-            copyInThread(System.in,process.getOutputStream());
-            monitor.setProcess(process);
-            process.waitFor();
+                copyInThread(process.getErrorStream(),System.err);
+                copyInThread(process.getInputStream(),System.out);
+                copyInThread(System.in,process.getOutputStream());
+                monitor.setProcess(process);
+                process.waitFor();
+            }
+            finally
+            {
+                Config.debug("Destroying " + process);
+                process.destroy();
+            }
             return;
         }
 
@@ -628,22 +661,23 @@ public class Main
         throw new FileNotFoundException("Unable to find XML Config: " + xmlFilename);
     }
 
-    private String buildCommandLine(Classpath classpath, List<String> xmls) throws IOException
+    CommandLineBuilder buildCommandLine(Classpath classpath, List<String> xmls) throws IOException
     {
-        StringBuilder cmd = new StringBuilder();
-        cmd.append(findJavaBin());
+        CommandLineBuilder cmd = new CommandLineBuilder(findJavaBin());
+
         for (String x : _jvmArgs)
-            cmd.append(' ').append(x);
-        cmd.append(" -Djetty.home=").append(_jettyHome);
+        {
+            cmd.addArg(x);
+        }
+        cmd.addEqualsArg("-Djetty.home",_jettyHome);
         for (String p : _sysProps)
         {
-            cmd.append("   -D").append(p);
             String v = System.getProperty(p);
-            if (v != null && v.length() > 0)
-                cmd.append('=').append(v);
+            cmd.addEqualsArg("-D" + p,v);
         }
-        cmd.append("   -cp ").append(classpath.toString());
-        cmd.append("   ").append(_config.getMainClassname());
+        cmd.addArg("-cp");
+        cmd.addArg(classpath.toString());
+        cmd.addRawArg(_config.getMainClassname());
 
         // Check if we need to pass properties as a file
         Properties properties = Config.getProperties();
@@ -653,15 +687,15 @@ public class Main
             if (!_dryRun)
                 prop_file.deleteOnExit();
             properties.store(new FileOutputStream(prop_file),"start.jar properties");
-            cmd.append(" ").append(prop_file.getAbsolutePath());
+            cmd.addArg(prop_file.getAbsolutePath());
         }
 
         for (String xml : xmls)
         {
-            cmd.append(' ').append(xml);
+            cmd.addArg(xml);
         }
 
-        return cmd.toString();
+        return cmd;
     }
 
     private String findJavaBin()
@@ -897,7 +931,7 @@ public class Main
             // parse the config
             _config.parse(cfgstream);
 
-            _jettyHome = Config.getProperty("jetty.home");
+            _jettyHome = Config.getProperty("jetty.home",_jettyHome);
             if (_jettyHome != null)
             {
                 _jettyHome = new File(_jettyHome).getCanonicalPath();
@@ -1009,5 +1043,59 @@ public class Main
         System.err.println("Usage: java -jar start.jar [options] [properties] [configs]");
         System.err.println("       java -jar start.jar --help  # for more information");
         System.exit(exit);
+    }
+    
+    /**
+     * Convert a start.ini format file into an argument list.
+     */
+    static List<String> loadStartIni(File ini)
+    {
+        File startIniFile = ini;
+        if (!startIniFile.exists())
+        {
+            if (ini != null)
+            {
+                System.err.println("Warning - can't find ini file: " + ini);
+            }
+            // No start.ini found, skip load.
+            return Collections.emptyList();
+        }
+
+        List<String> args = new ArrayList<String>();
+
+        FileReader reader = null;
+        BufferedReader buf = null;
+        try
+        {
+            reader = new FileReader(ini);
+            buf = new BufferedReader(reader);
+
+            String arg;
+            while ((arg = buf.readLine()) != null)
+            {
+                arg = arg.trim();
+                if (arg.length() == 0 || arg.startsWith("#"))
+                {
+                    continue;
+                }
+                args.add(arg);
+            }
+        }
+        catch (IOException e)
+        {
+            usageExit(e,ERR_UNKNOWN);
+        }
+        finally
+        {
+            Main.close(buf);
+            Main.close(reader);
+        }
+
+        return args;
+    }
+
+    void addJvmArgs(List<String> jvmArgs)
+    {
+        _jvmArgs.addAll(jvmArgs);
     }
 }

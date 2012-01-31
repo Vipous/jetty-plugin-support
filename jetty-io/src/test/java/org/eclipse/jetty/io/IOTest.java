@@ -20,14 +20,17 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
+import junit.framework.Assert;
+
+import org.eclipse.jetty.toolchain.test.OS;
 import org.eclipse.jetty.util.IO;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -45,7 +48,7 @@ public class IOTest
 
         IO.copyThread(in,out);
         Thread.sleep(1500);
-        System.err.println(out);
+        // System.err.println(out);
 
         assertEquals( "copyThread",
                       out.toString(),
@@ -154,7 +157,7 @@ public class IOTest
 
         // Write from server to client with oshut
         server.getOutputStream().write(1);
-        System.err.println("OSHUT "+server);
+        // System.err.println("OSHUT "+server);
         server.shutdownOutput();
 
         // Client reads response
@@ -165,19 +168,19 @@ public class IOTest
             // Client reads -1 and does ishut
             assertEquals(-1,client.getInputStream().read());
             assertFalse(client.isInputShutdown());
-            System.err.println("ISHUT "+client);
+            //System.err.println("ISHUT "+client);
             client.shutdownInput();
 
             // Client ???
-            System.err.println("OSHUT "+client);
+            //System.err.println("OSHUT "+client);
             client.shutdownOutput();
-            System.err.println("CLOSE "+client);
+            //System.err.println("CLOSE "+client);
             client.close();
 
             // Server reads -1, does ishut and then close
             assertEquals(-1,server.getInputStream().read());
             assertFalse(server.isInputShutdown());
-            System.err.println("ISHUT "+server);
+            //System.err.println("ISHUT "+server);
 
             try
             {
@@ -185,16 +188,93 @@ public class IOTest
             }
             catch(SocketException e)
             {
-                System.err.println(e);
+                // System.err.println(e);
             }
-            System.err.println("CLOSE "+server);
+            //System.err.println("CLOSE "+server);
             server.close();
 
         }
         catch(Exception e)
         {
-            // Dang OSX!
             System.err.println(e);
+            assertTrue(OS.IS_OSX);
+        }
+    }
+
+    @Test
+    public void testHalfCloseBadClient() throws Exception
+    {
+        ServerSocketChannel connector = ServerSocketChannel.open();
+        connector.socket().bind(null);
+        
+        Socket client = SocketChannel.open(connector.socket().getLocalSocketAddress()).socket();
+        client.setSoTimeout(1000);
+        client.setSoLinger(false,-1);
+        Socket server = connector.accept().socket();
+        server.setSoTimeout(1000);
+        server.setSoLinger(false,-1);
+        
+        // Write from client to server
+        client.getOutputStream().write(1);
+        
+        // Server reads 
+        assertEquals(1,server.getInputStream().read());
+
+        // Write from server to client with oshut
+        server.getOutputStream().write(1);
+        //System.err.println("OSHUT "+server);
+        server.shutdownOutput();
+
+        try
+        {
+            // Client reads response
+            assertEquals(1,client.getInputStream().read());
+
+            // Client reads -1 
+            assertEquals(-1,client.getInputStream().read());
+            assertFalse(client.isInputShutdown());
+
+            // Client can still write as we are half closed
+            client.getOutputStream().write(1);
+
+            // Server can still read 
+            assertEquals(1,server.getInputStream().read());
+
+            // Server now closes 
+            server.close();
+
+            // Client still reads -1 (not broken pipe !!)
+            assertEquals(-1,client.getInputStream().read());
+            assertFalse(client.isInputShutdown());
+
+            Thread.sleep(100);
+
+            // Client still reads -1 (not broken pipe !!)
+            assertEquals(-1,client.getInputStream().read());
+            assertFalse(client.isInputShutdown());
+
+            // Client can still write data even though server is closed???
+            client.getOutputStream().write(1);
+
+            // Client eventually sees Broken Pipe
+            int i=0;
+            try
+            {
+                for (i=0;i<100000;i++)
+                    client.getOutputStream().write(1);
+
+                Assert.fail();
+            }
+            catch (IOException e)
+            {
+            }
+            client.close();
+
+        }
+        catch (Exception e)
+        {
+            System.err.println("PLEASE INVESTIGATE:");
+            e.printStackTrace();
         }
     }
 

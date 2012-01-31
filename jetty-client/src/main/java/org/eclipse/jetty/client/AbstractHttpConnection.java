@@ -29,7 +29,6 @@ import org.eclipse.jetty.http.HttpSchemes;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.HttpVersions;
 import org.eclipse.jetty.io.AbstractConnection;
-import org.eclipse.jetty.io.AsyncEndPoint;
 import org.eclipse.jetty.io.Buffer;
 import org.eclipse.jetty.io.Buffers;
 import org.eclipse.jetty.io.ByteArrayBuffer;
@@ -149,7 +148,7 @@ public abstract class AbstractHttpConnection extends AbstractConnection implemen
     }
 
     public abstract Connection handle() throws IOException;
-    
+
 
     public boolean isIdle()
     {
@@ -180,21 +179,24 @@ public abstract class AbstractHttpConnection extends AbstractConnection implemen
             _generator.setVersion(_exchange.getVersion());
 
             String method=_exchange.getMethod();
-            String uri = _exchange.getURI();
-            if (_destination.isProxied() && !HttpMethods.CONNECT.equals(method) && uri.startsWith("/"))
+            String uri = _exchange.getRequestURI();
+            if (_destination.isProxied())
             {
-                boolean secure = _destination.isSecure();
-                String host = _destination.getAddress().getHost();
-                int port = _destination.getAddress().getPort();
-                StringBuilder absoluteURI = new StringBuilder();
-                absoluteURI.append(secure ? HttpSchemes.HTTPS : HttpSchemes.HTTP);
-                absoluteURI.append("://");
-                absoluteURI.append(host);
-                // Avoid adding default ports
-                if (!(secure && port == 443 || !secure && port == 80))
-                    absoluteURI.append(":").append(port);
-                absoluteURI.append(uri);
-                uri = absoluteURI.toString();
+                if (!HttpMethods.CONNECT.equals(method) && uri.startsWith("/"))
+                {
+                    boolean secure = _destination.isSecure();
+                    String host = _destination.getAddress().getHost();
+                    int port = _destination.getAddress().getPort();
+                    StringBuilder absoluteURI = new StringBuilder();
+                    absoluteURI.append(secure ? HttpSchemes.HTTPS : HttpSchemes.HTTP);
+                    absoluteURI.append("://");
+                    absoluteURI.append(host);
+                    // Avoid adding default ports
+                    if (!(secure && port == 443 || !secure && port == 80))
+                        absoluteURI.append(":").append(port);
+                    absoluteURI.append(uri);
+                    uri = absoluteURI.toString();
+                }
                 Authentication auth = _destination.getProxyAuthentication();
                 if (auth != null)
                     auth.setCredentials(_exchange);
@@ -275,7 +277,7 @@ public abstract class AbstractHttpConnection extends AbstractConnection implemen
                 _endp.close();
                 return;
             }
-            
+
             switch(status)
             {
                 case HttpStatus.CONTINUE_100:
@@ -295,7 +297,7 @@ public abstract class AbstractHttpConnection extends AbstractConnection implemen
             _status=status;
             exchange.getEventListener().onResponseStatus(version,status,reason);
             exchange.setStatus(HttpExchange.STATUS_PARSING_HEADERS);
-            
+
         }
 
         @Override
@@ -315,8 +317,6 @@ public abstract class AbstractHttpConnection extends AbstractConnection implemen
         @Override
         public void headerComplete() throws IOException
         {
-            if (_endp instanceof AsyncEndPoint)
-                ((AsyncEndPoint)_endp).scheduleIdle();
             HttpExchange exchange = _exchange;
             if (exchange!=null)
                 exchange.setStatus(HttpExchange.STATUS_PARSING_CONTENT);
@@ -325,8 +325,6 @@ public abstract class AbstractHttpConnection extends AbstractConnection implemen
         @Override
         public void content(Buffer ref) throws IOException
         {
-            if (_endp instanceof AsyncEndPoint)
-                ((AsyncEndPoint)_endp).scheduleIdle();
             HttpExchange exchange = _exchange;
             if (exchange!=null)
                 exchange.getEventListener().onResponseContent(ref);
@@ -353,16 +351,18 @@ public abstract class AbstractHttpConnection extends AbstractConnection implemen
                 }
             }
         }
-        
-        
+
+
     }
 
     @Override
     public String toString()
     {
-        return "HttpConnection@" + hashCode() + "//" + 
-        (_destination==null?"?.?.?.?:??":(_destination.getAddress().getHost() + ":" + _destination.getAddress().getPort()))+
-        ",g="+_generator.getState()+",p="+_parser.getState();
+        return String.format("%s %s g=%s p=%s",
+                super.toString(),
+                _destination == null ? "?.?.?.?:??" : _destination.getAddress(),
+                _generator,
+                _parser);
     }
 
     public String toDetailString()
@@ -397,7 +397,11 @@ public abstract class AbstractHttpConnection extends AbstractConnection implemen
             }
         }
 
-        _endp.close();
+        if (_endp.isOpen())
+        {
+            _endp.close();
+            _destination.returnConnection(this, true);
+        }
     }
 
     public void setIdleTimeout()

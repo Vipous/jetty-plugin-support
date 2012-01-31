@@ -13,10 +13,6 @@
 
 package org.eclipse.jetty.server;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -29,7 +25,6 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.Exchanger;
-
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
@@ -37,12 +32,20 @@ import javax.servlet.http.HttpServletResponse;
 
 import junit.framework.Assert;
 
+import org.eclipse.jetty.http.HttpParser;
 import org.eclipse.jetty.io.EndPoint;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.IO;
+import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.StdErrLog;
 import org.junit.Test;
+
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThat;
 
 /**
  *
@@ -222,7 +225,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
 
                 // Read the response
                 String response=readResponse(client);
-                
+
                 // Check the response
                 assertEquals("response "+i,RESPONSE2,response);
             }
@@ -378,7 +381,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
                         try
                         {
                             URL url=new URL(_scheme+"://"+HOST+":"+_connector.getLocalPort()+"/?writes="+w+"&block="+b+ (e==0?"":("&encoding="+encoding[e]))+(c==0?"&chars=true":""));
-                            
+
                             InputStream in = (InputStream)url.getContent();
                             String response=IO.toString(in,e==0?null:encoding[e]);
 
@@ -453,7 +456,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
             client.close();
         }
     }
-    
+
     @Test
     public void testBlockingWhileWritingResponseContent() throws Exception
     {
@@ -494,7 +497,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
         }
         finally
         {
-            System.err.println("Got "+total+" of "+(512*1024));
+            //System.err.println("Got "+total+" of "+(512*1024));
             client.close();
         }
     }
@@ -521,7 +524,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
                     "\r\n"
             ).getBytes());
             os.flush();
-            
+
             // read the chunked response header
             boolean chunked=false;
             boolean closed=false;
@@ -530,13 +533,13 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
                 String line=in.readLine();
                 if (line==null || line.length()==0)
                     break;
-             
+
                 chunked|="Transfer-Encoding: chunked".equals(line);
                 closed|="Connection: close".equals(line);
             }
             Assert.assertTrue(chunked);
             Assert.assertFalse(closed);
-            
+
             // Read the chunks
             int max=Integer.MIN_VALUE;
             while(true)
@@ -550,22 +553,22 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
                 if (max<len)
                     max=len;
             }
-            
+
             // Check that a direct content buffer was used as a chunk
             Assert.assertEquals(128*1024,max);
-            
+
             // read and check the times are < 999ms
             String[] times=in.readLine().split(",");
             for (String t: times)
                Assert.assertTrue(Integer.valueOf(t).intValue()<999);
-            
-            
+
+
             // read the EOF chunk
             String end=in.readLine();
             Assert.assertEquals("0",end);
             end=in.readLine();
             Assert.assertEquals(0,end.length());
-            
+
 
             // read the non-chunked response header
             chunked=false;
@@ -575,13 +578,13 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
                 String line=in.readLine();
                 if (line==null || line.length()==0)
                     break;
-             
+
                 chunked|="Transfer-Encoding: chunked".equals(line);
                 closed|="Connection: close".equals(line);
             }
             Assert.assertFalse(chunked);
             Assert.assertTrue(closed);
-            
+
             String bigline = in.readLine();
             Assert.assertEquals(10*128*1024,bigline.length());
 
@@ -589,7 +592,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
             times=in.readLine().split(",");
             for (String t: times)
                 Assert.assertTrue(t,Integer.valueOf(t).intValue()<999);
-            
+
             // check close
             Assert.assertTrue(in.readLine()==null);
         }
@@ -607,7 +610,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
             byte[] buf = new byte[128*1024];
             for (int i=0;i<buf.length;i++)
                 buf[i]=(byte)("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_".charAt(i%63));
-            
+
             baseRequest.setHandled(true);
             response.setStatus(200);
             response.setContentType("text/plain");
@@ -631,7 +634,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
             out.close();
         }
     }
-    
+
 
     @Test
     public void testPipeline() throws Exception
@@ -741,6 +744,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
             IO.copy(is,bout);
             byte[] b=bout.toByteArray();
 
+            //System.err.println("OUTPUT: "+new String(b));
             int i=0;
             while (b[i]!='Z')
                 i++;
@@ -795,14 +799,14 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
                 "content-length: 10\r\n"+
                 "\015\012"+
                 "123456789\n" +
-                
+
                 "HEAD /R1 HTTP/1.1\015\012"+
                 "Host: "+HOST+":"+_connector.getLocalPort()+"\015\012"+
                 "content-type: text/plain; charset=utf-8\r\n"+
                 "content-length: 10\r\n"+
                 "\015\012"+
                 "123456789\n"+
-                
+
                 "POST /R1 HTTP/1.1\015\012"+
                 "Host: "+HOST+":"+_connector.getLocalPort()+"\015\012"+
                 "content-type: text/plain; charset=utf-8\r\n"+
@@ -810,25 +814,25 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
                 "Connection: close\015\012"+
                 "\015\012"+
                 "123456789\n"
-                
+
                 ).getBytes("iso-8859-1"));
-            
+
             String in = IO.toString(is);
-            
+
             int index=in.indexOf("123456789");
             assertTrue(index>0);
             index=in.indexOf("123456789",index+1);
             assertTrue(index>0);
             index=in.indexOf("123456789",index+1);
             assertTrue(index==-1);
-            
+
         }
         finally
         {
             client.close();
         }
     }
-    
+
     @Test
     public void testRecycledReaders() throws Exception
     {
@@ -908,27 +912,27 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
                     "Connection: Keep-Alive\r\n"+
                     "\r\n"
             ).getBytes());
-            
+
             // Never send a body.
             // HelloWorldHandler does not read content, so 100 is not sent.
             // So close will have to happen anyway, without reset!
-            
+
             os.flush();
-            
+
             client.setSoTimeout(2000);
             long start=System.currentTimeMillis();
             String in = IO.toString(is);
             assertTrue(System.currentTimeMillis()-start<1000);
             assertTrue(in.indexOf("Connection: close")>0);
             assertTrue(in.indexOf("Hello world")>0);
-            
+
         }
         finally
         {
             client.close();
         }
     }
-    
+
     @Test
     public void testCommittedError() throws Exception
     {
@@ -949,25 +953,25 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
                     "\r\n"
             ).getBytes());
             os.flush();
-            
+
             client.setSoTimeout(2000);
             String in = IO.toString(is);
 
             assertEquals(-1,is.read()); // Closed by error!
-            
+
             assertTrue(in.indexOf("HTTP/1.1 200 OK")>=0);
             assertTrue(in.indexOf("Transfer-Encoding: chunked")>0);
             assertTrue(in.indexOf("Now is the time for all good men to come to the aid of the party")>0);
             assertTrue(in.indexOf("\r\n0\r\n")==-1); // chunking is interrupted by error close
 
             client.close();
-            Thread.sleep(100); 
+            Thread.sleep(100);
             assertTrue(!handler._endp.isOpen());
         }
         finally
         {
             ((StdErrLog)Log.getLogger(AbstractHttpConnection.class)).setHideStacks(false);
-            
+
             if (!client.isClosed())
                 client.close();
         }
@@ -976,7 +980,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
     protected static class CommittedErrorHandler extends AbstractHandler
     {
         public EndPoint _endp;
-        
+
         public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException
         {
             _endp=baseRequest.getConnection().getEndPoint();
@@ -986,15 +990,15 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
             response.getWriter().println("Now is the time for all good men to come to the aid of the party");
             response.getWriter().flush();
             response.flushBuffer();
-            
+
             throw new ServletException(new Exception("exception after commit"));
         }
     }
-    
+
     protected static class AvailableHandler extends AbstractHandler
     {
         public Exchanger<Object> _ex = new Exchanger<Object>();
-        
+
         public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException
         {
             baseRequest.setHandled(true);
@@ -1002,31 +1006,31 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
             response.setContentType("text/plain");
             InputStream in = request.getInputStream();
             ServletOutputStream out=response.getOutputStream();
-            
+
             // should always be some input available, because of deferred dispatch.
             int avail=in.available();
             out.println(avail);
-            
+
             String buf="";
             for (int i=0;i<avail;i++)
                 buf+=(char)in.read();
-            
+
 
             avail=in.available();
             out.println(avail);
-            
+
             try
             {
                 _ex.exchange(null);
-                _ex.exchange(null); 
+                _ex.exchange(null);
             }
             catch(InterruptedException e)
             {
                 e.printStackTrace();
             }
-            
+
             avail=in.available();
-            
+
             if (avail==0)
             {
                 // handle blocking channel connectors
@@ -1046,15 +1050,15 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
 
             for (int i=0;i<avail;i++)
                 buf+=(char)in.read();
-            
+
             avail=in.available();
             out.println(avail);
             out.println(buf);
             out.close();
         }
     }
-    
-    
+
+
     @Test
     public void testAvailable() throws Exception
     {
@@ -1081,7 +1085,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
                     "1234567890"
             ).getBytes());
             os.flush();
-            
+
             ah._ex.exchange(null);
 
             os.write((
@@ -1090,7 +1094,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
             os.flush();
             Thread.sleep(500);
             ah._ex.exchange(null);
-            
+
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
             // skip header
             while(reader.readLine().length()>0);
@@ -1099,7 +1103,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
             assertEquals(20,Integer.parseInt(reader.readLine()));
             assertEquals(0,Integer.parseInt(reader.readLine()));
             assertEquals("1234567890abcdefghijklmnopqrst",reader.readLine());
-            
+
         }
         finally
         {
@@ -1107,7 +1111,7 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
         }
     }
 
-    
+
     @Test
     public void testDualRequest1() throws Exception
     {
@@ -1205,5 +1209,70 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
     }
 
 
-    
+
+    @Test
+    public void testUnreadInput () throws Exception
+    {
+        configureServer(new NoopHandler());
+        final int REQS=5;
+        String content="This is a loooooooooooooooooooooooooooooooooo"+
+        "ooooooooooooooooooooooooooooooooooooooooooooo"+
+        "ooooooooooooooooooooooooooooooooooooooooooooo"+
+        "ooooooooooooooooooooooooooooooooooooooooooooo"+
+        "ooooooooooooooooooooooooooooooooooooooooooooo"+
+        "ooooooooooooooooooooooooooooooooooooooooooooo"+
+        "ooooooooooooooooooooooooooooooooooooooooooooo"+
+        "ooooooooooooooooooooooooooooooooooooooooooooo"+
+        "ooooooooooooooooooooooooooooooooooooooooooooo"+
+        "oooooooooooonnnnnnnnnnnnnnnnggggggggg content"+
+        new String(new char[65*1024]);
+        final byte[] bytes = content.getBytes();
+
+        Socket client=newSocket(HOST,_connector.getLocalPort());
+        final OutputStream out=client.getOutputStream();
+
+        new Thread()
+        {
+            public void run()
+            {
+                try
+                {
+                    for (int i=0; i<REQS; i++)
+                    {
+                        out.write("GET / HTTP/1.1\r\nHost: localhost\r\n".getBytes(StringUtil.__ISO_8859_1));
+                        out.write(("Content-Length: "+bytes.length+"\r\n" + "\r\n").getBytes(StringUtil.__ISO_8859_1));
+                        out.write(bytes,0,bytes.length);
+                    }
+                    out.write("GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n".getBytes(StringUtil.__ISO_8859_1));
+                    out.flush();
+                }
+                catch(Exception e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
+            
+        String resps = readResponse(client);
+               
+        int offset=0;
+        for (int i=0;i<(REQS+1);i++)
+        {
+            int ok=resps.indexOf("HTTP/1.1 200 OK",offset);
+            assertThat("resp"+i,ok,greaterThanOrEqualTo(offset));
+            offset=ok+15;
+        }
+    }
+
+    public class NoopHandler extends AbstractHandler
+    {
+        public void handle(String target, Request baseRequest,
+                HttpServletRequest request, HttpServletResponse response) throws IOException,
+                ServletException
+        {
+           //don't read the input, just send something back
+            ((Request)request).setHandled(true);
+            response.setStatus(200);
+        }
+    }
 }

@@ -26,8 +26,8 @@ import org.eclipse.jetty.io.nio.AsyncConnection;
 import org.eclipse.jetty.io.nio.IndirectNIOBuffer;
 import org.eclipse.jetty.io.nio.SelectChannelEndPoint;
 import org.eclipse.jetty.io.nio.SelectorManager;
-import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.AbstractHttpConnection;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.HostMap;
@@ -667,7 +667,7 @@ public class ConnectHandler extends HandlerWrapper
             _endPoint.shutdownOutput();
         }
 
-        public void onIdleExpired()
+        public void onIdleExpired(long idleForMs)
         {
             try
             {
@@ -834,7 +834,7 @@ public class ConnectHandler extends HandlerWrapper
             _endPoint.shutdownOutput();
         }
 
-        public void onIdleExpired()
+        public void onIdleExpired(long idleForMs)
         {
             try
             {

@@ -6,7 +6,7 @@
     <version>19</version>
   </parent>
   <artifactId>jetty-project</artifactId>
-  <version>7.6.0-SNAPSHOT</version>
+  <version>7.6.1-SNAPSHOT</version>
   <name>Jetty :: Project</name>
   <url>${jetty.url}</url>
   <packaging>pom</packaging>
@@ -20,7 +20,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j-version>1.6.1</slf4j-version>
     <build-support-version>1.1</build-support-version>
-    <jetty.test.helper>1.6</jetty.test.helper>
+    <jetty.test.helper>1.6.1</jetty.test.helper>
     <jetty.test.policy>1.2</jetty.test.policy>
   </properties>
   <scm>
@@ -311,6 +311,7 @@
       </plugin>
     </plugins>
   </reporting>
+<!--
   <repositories>
     <repository>
       <snapshots>
@@ -321,6 +322,7 @@
       <url>http://oss.sonatype.org/content/groups/jetty</url>
     </repository>
   </repositories>
+-->
   <modules>
     <module>jetty-util</module>
     <module>jetty-jmx</module>
@@ -352,7 +354,7 @@
     <module>jetty-http-spi</module>
     <module>jetty-distribution</module>
     <module>test-continuation</module>
-    <module>test-continuation-jetty6</module>
+    <!--module>test-continuation-jetty6</module-->
     <module>test-jetty-servlet</module>
     <module>test-jetty-webapp</module>
     <module>test-jetty-nested</module>

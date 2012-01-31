@@ -19,8 +19,14 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.eclipse.jetty.util.IO;
 import org.eclipse.jetty.util.Loader;
@@ -58,6 +64,12 @@ public class Log
      * Legacy flag indicating if {@link Log#ignore(Throwable)} methods produce any output in the {@link Logger}s
      */
     public static boolean __ignored;
+
+    /**
+     * Hold loggers only.
+     */
+    private final static ConcurrentMap<String, Logger> __loggers = new ConcurrentHashMap<String, Logger>();
+
 
     static
     {
@@ -102,7 +114,10 @@ public class Log
                 while (systemKeyEnum.hasMoreElements())
                 {
                     String key = systemKeyEnum.nextElement();
-                    __props.setProperty(key,System.getProperty(key));
+                    String val = System.getProperty(key);
+                    //protect against application code insertion of non-String values (returned as null)
+                    if (val != null)
+                        __props.setProperty(key,val);
                 }
 
                 /* Now use the configuration properties to configure the Log statics
@@ -142,11 +157,6 @@ public class Log
                 LOG.debug("Logging to {} via {}", LOG, log_class.getName());
             }
         }
-        catch(ThreadDeath e) 
-        {
-            // Let ThreadDeath pass through
-            throw e;
-        }
         catch(Throwable e)
         {
             // Unable to load specified Logger implementation, default to standard logging.
@@ -163,7 +173,7 @@ public class Log
         {
             e.printStackTrace();
         }
-        
+
         if (LOG == null)
         {
             log_class = StdErrLog.class;
@@ -186,7 +196,7 @@ public class Log
         initialized();
         return LOG;
     }
-    
+
     /**
      * Get the root logger.
      * @return the root logger
@@ -397,10 +407,10 @@ public class Log
             return;
         LOG.warn(EXCEPTION, th);
     }
-    
+
     /**
      * Obtain a named Logger based on the fully qualified class name.
-     * 
+     *
      * @param clazz
      *            the class to base the Logger name off of
      * @return the Logger with the given name
@@ -420,6 +430,28 @@ public class Log
         if (!initialized())
             return null;
 
-        return name == null ? LOG : LOG.getLogger(name);
+        if(name==null)
+            return LOG;
+
+        Logger logger = __loggers.get(name);
+        if(logger==null)
+            logger = LOG.getLogger(name);
+
+        return logger;
+    }
+
+    static ConcurrentMap<String, Logger> getMutableLoggers()
+    {
+        return __loggers;
+    }
+    
+    /**
+     * Get a map of all configured {@link Logger} instances.
+     *
+     * @return a map of all configured {@link Logger} instances
+     */
+    public static Map<String, Logger> getLoggers()
+    {
+        return Collections.unmodifiableMap(__loggers);
     }
 }

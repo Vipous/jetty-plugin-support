@@ -178,7 +178,7 @@ public class URLEncodedTest
         {
             ByteArrayInputStream in = new ByteArrayInputStream("name\n=value+%30&name1=&name2&n\u00e3me3=value+3".getBytes(charsets[i][0]));
             MultiMap m = new MultiMap();
-            UrlEncoded.decodeTo(in, m, charsets[i][1], -1);
+            UrlEncoded.decodeTo(in, m, charsets[i][1], -1,-1);
             System.err.println(m);
             assertEquals(i+" stream length",4,m.size());
             assertEquals(i+" stream name\\n","value 0",m.getString("name\n"));
@@ -192,7 +192,7 @@ public class URLEncodedTest
         {
             ByteArrayInputStream in2 = new ByteArrayInputStream ("name=%83e%83X%83g".getBytes());
             MultiMap m2 = new MultiMap();
-            UrlEncoded.decodeTo(in2, m2, "Shift_JIS", -1);
+            UrlEncoded.decodeTo(in2, m2, "Shift_JIS", -1,-1);
             assertEquals("stream length",1,m2.size());
             assertEquals("stream name","\u30c6\u30b9\u30c8",m2.getString("name"));
         }
@@ -220,7 +220,6 @@ public class URLEncodedTest
         */ 
     }
     
-
     /* -------------------------------------------------------------- */
     @Test
     public void testUtf8()
@@ -235,5 +234,22 @@ public class URLEncodedTest
         String hex ="E0B89FE0B8ABE0B881E0B8A7E0B894E0B8B2E0B988E0B881E0B89FE0B8A7E0B8ABE0B8AAE0B894E0B8B2E0B988E0B8ABE0B89FE0B881E0B8A7E0B894E0B8AAE0B8B2E0B89FE0B881E0B8ABE0B8A3E0B894E0B989E0B89FE0B8ABE0B899E0B881E0B8A3E0B894E0B8B5";
         String expected = new String(TypeUtil.fromHexString(hex),"utf-8");
         assertEquals(expected,url_encoded.get("text"));
+    }
+    
+    /* -------------------------------------------------------------- */
+    @Test
+    public void testNotUtf8() throws Exception
+    {   
+        String query="name=X%c0%afZ";
+        
+        MultiMap<String> map = new MultiMap<String>();
+        
+        UrlEncoded.decodeUtf8To(query.getBytes(StringUtil.__ISO_8859_1),0,query.length(),map);
+        assertEquals("X"+Utf8Appendable.REPLACEMENT+Utf8Appendable.REPLACEMENT+"Z",map.getValue("name",0));
+
+        map.clear();
+
+        UrlEncoded.decodeUtf8To(new ByteArrayInputStream(query.getBytes(StringUtil.__ISO_8859_1)),map,100,2);
+        assertEquals("X"+Utf8Appendable.REPLACEMENT+Utf8Appendable.REPLACEMENT+"Z",map.getValue("name",0));
     }
 }

@@ -34,6 +34,7 @@ import org.eclipse.jetty.util.component.Container.Relationship;
 import org.eclipse.jetty.util.component.Dumpable;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
+import org.eclipse.jetty.util.log.StdErrLog;
 import org.eclipse.jetty.util.thread.ShutdownThread;
 
 /**
@@ -86,15 +87,6 @@ public class MBeanContainer extends AbstractLifeCycle implements Container.Liste
     public MBeanContainer(MBeanServer server)
     {
         _server = server;
-
-        try
-        {
-            start();
-        }
-        catch (Exception e)
-        {
-            LOG.ignore(e);
-        }
     }
 
     /**
@@ -345,7 +337,7 @@ public class MBeanContainer extends AbstractLifeCycle implements Container.Liste
 
     public void dump(Appendable out, String indent) throws IOException
     {
-        out.append(toString()).append("\n");
+        AggregateLifeCycle.dumpObject(out,this);
         AggregateLifeCycle.dump(out, indent, _beans.entrySet());
     }
 

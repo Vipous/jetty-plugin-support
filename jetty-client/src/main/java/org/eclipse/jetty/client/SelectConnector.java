@@ -30,14 +30,15 @@ import org.eclipse.jetty.io.nio.AsyncConnection;
 import org.eclipse.jetty.io.nio.SelectChannelEndPoint;
 import org.eclipse.jetty.io.nio.SelectorManager;
 import org.eclipse.jetty.io.nio.SslConnection;
-import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.component.AggregateLifeCycle;
+import org.eclipse.jetty.util.component.Dumpable;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.Timeout;
 import org.eclipse.jetty.util.thread.Timeout.Task;
 
-class SelectConnector extends AbstractLifeCycle implements HttpClient.Connector
+class SelectConnector extends AggregateLifeCycle implements HttpClient.Connector, Dumpable
 {
     private static final Logger LOG = Log.getLogger(SelectConnector.class);
 
@@ -45,28 +46,16 @@ class SelectConnector extends AbstractLifeCycle implements HttpClient.Connector
     private final Manager _selectorManager=new Manager();
     private final Map<SocketChannel, Timeout.Task> _connectingChannels = new ConcurrentHashMap<SocketChannel, Timeout.Task>();
 
+    /* ------------------------------------------------------------ */
     /**
-     * @param httpClient the HttpClient this connector is associated to
+     * @param httpClient the HttpClient this connector is associated to. It is 
+     * added via the {@link #addBean(Object, boolean)} as an unmanaged bean.
      */
     SelectConnector(HttpClient httpClient)
     {
         _httpClient = httpClient;
-    }
-
-    /* ------------------------------------------------------------ */
-    @Override
-    protected void doStart() throws Exception
-    {
-        super.doStart();
-
-        _selectorManager.start();
-    }
-
-    /* ------------------------------------------------------------ */
-    @Override
-    protected void doStop() throws Exception
-    {
-        _selectorManager.stop();
+        addBean(_httpClient,false);
+        addBean(_selectorManager,true);
     }
 
     /* ------------------------------------------------------------ */
@@ -82,9 +71,9 @@ class SelectConnector extends AbstractLifeCycle implements HttpClient.Connector
 
             if (_httpClient.isConnectBlocking())
             {
-                    channel.socket().connect(address.toSocketAddress(), _httpClient.getConnectTimeout());
-                    channel.configureBlocking(false);
-                    _selectorManager.register( channel, destination );
+                channel.socket().connect(address.toSocketAddress(), _httpClient.getConnectTimeout());
+                channel.configureBlocking(false);
+                _selectorManager.register( channel, destination );
             }
             else
             {
@@ -155,10 +144,8 @@ class SelectConnector extends AbstractLifeCycle implements HttpClient.Connector
             // key should have destination at this point (will be replaced by endpoint after this call)
             HttpDestination dest=(HttpDestination)key.attachment();
 
-            AsyncEndPoint ep=null;
-
-            SelectChannelEndPoint scep= new SelectChannelEndPoint(channel, selectSet, key, (int)_httpClient.getIdleTimeout());
-            ep = scep;
+            SelectChannelEndPoint scep = new SelectChannelEndPoint(channel, selectSet, key, (int)_httpClient.getIdleTimeout());
+            AsyncEndPoint ep = scep;
 
             if (dest.isSecure())
             {
@@ -262,10 +249,10 @@ class SelectConnector extends AbstractLifeCycle implements HttpClient.Connector
 
         public void upgrade()
         {
-            AsyncHttpConnection connection = (AsyncHttpConnection) ((SelectChannelEndPoint)_endp).getConnection();
+            AsyncHttpConnection connection = (AsyncHttpConnection)_endp.getConnection();
 
             SslConnection sslConnection = new SslConnection(_engine,_endp);
-            ((SelectChannelEndPoint)_endp).setConnection(sslConnection);
+            _endp.setConnection(sslConnection);
 
             _endp=sslConnection.getSslEndPoint();
             sslConnection.getSslEndPoint().setConnection(connection);
@@ -319,19 +306,9 @@ class SelectConnector extends AbstractLifeCycle implements HttpClient.Connector
             _endp.close();
         }
 
-        public void scheduleIdle()
-        {
-            _endp.scheduleIdle();
-        }
-
         public int fill(Buffer buffer) throws IOException
         {
             return _endp.fill(buffer);
-        }
-
-        public void cancelIdle()
-        {
-            _endp.cancelIdle();
         }
 
         public boolean isWritable()
@@ -432,6 +409,21 @@ class SelectConnector extends AbstractLifeCycle implements HttpClient.Connector
         public void setMaxIdleTime(int timeMs) throws IOException
         {
             _endp.setMaxIdleTime(timeMs);
+        }
+
+        public void onIdleExpired(long idleForMs)
+        {
+            _endp.onIdleExpired(idleForMs);
+        }
+
+        public void setCheckForIdle(boolean check)
+        {
+            _endp.setCheckForIdle(check);
+        }
+
+        public boolean isCheckForIdle()
+        {
+            return _endp.isCheckForIdle();
         }
 
         public String toString()

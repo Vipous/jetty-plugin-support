@@ -185,9 +185,6 @@ public class AsyncContinuation implements AsyncContext, Continuation
     }
     
     /* ------------------------------------------------------------ */
-    /* (non-Javadoc)
-     * @see javax.servlet.ServletRequest#isSuspended()
-     */
     public boolean isSuspending()
     {
         synchronized(this)
@@ -196,6 +193,25 @@ public class AsyncContinuation implements AsyncContext, Continuation
             {
                 case __ASYNCSTARTED:
                 case __ASYNCWAIT:
+                    return true;
+                    
+                default:
+                    return false;   
+            }
+        }
+    }
+    
+    /* ------------------------------------------------------------ */
+    public boolean isDispatchable()
+    {
+        synchronized(this)
+        {
+            switch(_state)
+            {
+                case __REDISPATCH:
+                case __REDISPATCHED:
+                case __REDISPATCHING:
+                case __COMPLETING:
                     return true;
                     
                 default:

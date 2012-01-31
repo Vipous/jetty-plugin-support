@@ -25,6 +25,14 @@ import org.junit.Test;
 public class XmlConfigurationTest
 {
     protected String _configure="org/eclipse/jetty/xml/configure.xml";
+
+    @Test
+    public void testMortBay() throws Exception
+    {
+        URL url = XmlConfigurationTest.class.getClassLoader().getResource("org/eclipse/jetty/xml/mortbay.xml");
+        XmlConfiguration configuration = new XmlConfiguration(url);
+        Object o=configuration.configure();
+    }
     
     @Test
     public void testPassedObject() throws Exception
@@ -63,6 +71,8 @@ public class XmlConfigurationTest
         assertEquals( "ObjectsWhiteString", "-1\n  String",tc.get("ObjectsWhiteString"));
 
         assertEquals( "SystemProperty", System.getProperty("user.dir")+"/stuff",tc.get("SystemProperty"));
+        assertEquals( "Env", System.getenv("HOME"),tc.get("Env"));
+       
         assertEquals( "Property", "xxx", tc.get("Property"));
 
 

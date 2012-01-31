@@ -1,6 +1,7 @@
 package org.eclipse.jetty.util.log;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -41,5 +42,11 @@ public class StdErrCapture
         err.flush();
         String output = new String(test.toByteArray());
         Assert.assertThat(output,not(containsString(unexpectedString)));
+    }
+    
+    public String toString()
+    {
+        err.flush();
+        return new String(test.toByteArray());
     }
 }

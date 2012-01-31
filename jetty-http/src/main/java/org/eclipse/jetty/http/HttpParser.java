@@ -14,8 +14,6 @@
 package org.eclipse.jetty.http;
 
 import java.io.IOException;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.jetty.io.Buffer;
 import org.eclipse.jetty.io.BufferCache.CachedBuffer;
@@ -65,8 +63,8 @@ public class HttpParser implements Parser
     private Buffer _body; // Buffer for large content
     private Buffer _buffer; // The current buffer in use (either _header or _content)
     private CachedBuffer _cached;
-    private View.CaseInsensitive _tok0; // Saved token: header name, request method or response version
-    private View.CaseInsensitive _tok1; // Saved token: header value, request URI or response code
+    private final View.CaseInsensitive _tok0; // Saved token: header name, request method or response version
+    private final View.CaseInsensitive _tok1; // Saved token: header value, request URI or response code
     private String _multiLineValue;
     private int _responseStatus; // If >0 then we are parsing a response
     private boolean _forceContentBuffer;
@@ -82,7 +80,7 @@ public class HttpParser implements Parser
     protected int _chunkLength;
     protected int _chunkPosition;
     private boolean _headResponse;
-    
+
     /* ------------------------------------------------------------------------------- */
     /**
      * Constructor.
@@ -95,13 +93,8 @@ public class HttpParser implements Parser
         _buffer=buffer;
         _handler=handler;
 
-        if (buffer != null)
-        {
-            _tok0=new View.CaseInsensitive(buffer);
-            _tok1=new View.CaseInsensitive(buffer);
-            _tok0.setPutIndex(_tok0.getIndex());
-            _tok1.setPutIndex(_tok1.getIndex());
-        }
+        _tok0=new View.CaseInsensitive(_header);
+        _tok1=new View.CaseInsensitive(_header);
     }
 
     /* ------------------------------------------------------------------------------- */
@@ -116,6 +109,8 @@ public class HttpParser implements Parser
         _buffers=buffers;
         _endp=endp;
         _handler=handler;
+        _tok0=new View.CaseInsensitive();
+        _tok1=new View.CaseInsensitive();
     }
 
     /* ------------------------------------------------------------------------------- */
@@ -199,7 +194,7 @@ public class HttpParser implements Parser
     public void setPersistent(boolean persistent)
     {
         _persistent = persistent;
-        if (_state==STATE_END)
+        if (!_persistent &&(_state==STATE_END || _state==STATE_START))
             _state=STATE_SEEKING_EOF;
     }
 
@@ -233,7 +228,7 @@ public class HttpParser implements Parser
     public boolean parseAvailable() throws IOException
     {
         boolean progress=parseNext()>0;
-        
+
         // continue parsing
         while (!isComplete() && _buffer!=null && _buffer.length()>0)
         {
@@ -249,7 +244,7 @@ public class HttpParser implements Parser
      * @return an indication of progress <0 EOF, 0 no progress, >0 progress.
      */
     public int parseNext() throws IOException
-    {   
+    {
         try
         {
             int progress=0;
@@ -258,17 +253,7 @@ public class HttpParser implements Parser
                 return 0;
 
             if (_buffer==null)
-            {
-                if (_header == null)
-                {
-                    _header=_buffers.getHeader();
-                }
-                _buffer=_header;
-                _tok0=new View.CaseInsensitive(_header);
-                _tok1=new View.CaseInsensitive(_header);
-                _tok0.setPutIndex(_tok0.getIndex());
-                _tok1.setPutIndex(_tok1.getIndex());
-            }
+                _buffer=getHeaderBuffer();
 
 
             if (_state == STATE_CONTENT && _contentPosition == _contentLength)
@@ -300,7 +285,7 @@ public class HttpParser implements Parser
                 if (filled > 0 )
                     progress++;
                 else if (filled < 0 )
-                {                    
+                {
                     _persistent=false;
 
                     // do we have content to deliver?
@@ -970,8 +955,25 @@ public class HttpParser implements Parser
                     }
 
                     case STATE_SEEKING_EOF:
-                    {
-                        // Skip all data
+                    {                        
+                        // Close if there is more data than CRLF
+                        if (_buffer.length()>2)
+                        {
+                            _state=STATE_END;
+                            _endp.close();
+                        }
+                        else  
+                        {
+                            // or if the data is not white space
+                            while (_buffer.length()>0)
+                                if (!Character.isWhitespace(_buffer.get()))
+                                {
+                                    _state=STATE_END;
+                                    _endp.close();
+                                    _buffer.clear();
+                                }
+                        }
+                        
                         _buffer.clear();
                         break;
                     }
@@ -998,11 +1000,7 @@ public class HttpParser implements Parser
     {
         // Do we have a buffer?
         if (_buffer==null)
-        {
-            _buffer=_header=getHeaderBuffer();
-            _tok0=new View.CaseInsensitive(_buffer);
-            _tok1=new View.CaseInsensitive(_buffer);
-        }
+            _buffer=getHeaderBuffer();
 
         // Is there unconsumed content in body buffer
         if (_state>STATE_END && _buffer==_header && _header!=null && !_header.hasContent() && _body!=null && _body.hasContent())
@@ -1071,9 +1069,7 @@ public class HttpParser implements Parser
             // This is probably a pipelined header of the next request, so we need to
             // copy it to the header buffer.
             if (_header==null)
-            {
-                _header=_buffers.getHeader();
-            }
+                getHeaderBuffer();
             else
             {
                 _header.setMarkIndex(-1);
@@ -1137,7 +1133,11 @@ public class HttpParser implements Parser
     @Override
     public String toString()
     {
-        return "HttpParser{s=" + _state + ",l=" + _length + ",c=" + _contentLength+"}";
+        return String.format("%s{s=%d,l=%d,c=%d}",
+                getClass().getSimpleName(),
+                _state,
+                _length,
+                _contentLength);
     }
 
     /* ------------------------------------------------------------ */
@@ -1146,6 +1146,8 @@ public class HttpParser implements Parser
         if (_header == null)
         {
             _header=_buffers.getHeader();
+            _tok0.update(_header);
+            _tok1.update(_header);
         }
         return _header;
     }
@@ -1170,7 +1172,7 @@ public class HttpParser implements Parser
     {
         if (_contentView.length()>0)
             return _contentView;
-        
+
         if (getState() <= STATE_END || isState(STATE_SEEKING_EOF))
             return null;
 
@@ -1202,7 +1204,7 @@ public class HttpParser implements Parser
             _endp.close();
             throw e;
         }
-        
+
         return _contentView.length()>0?_contentView:null;
     }
 
@@ -1260,7 +1262,7 @@ public class HttpParser implements Parser
          */
         public abstract void startResponse(Buffer version, int status, Buffer reason)
                 throws IOException;
-        
+
         public void earlyEOF()
         {}
     }

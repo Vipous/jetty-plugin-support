@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
@@ -134,10 +135,10 @@
                 <requireJavaVersion>
                   <version>[1.5,)</version>
                 </requireJavaVersion>
-                <versionTxtRule implementation="org.eclipse.jetty.toolchain.enforcer.rules.VersionTxtRule" />
-                <versionOsgiRule implementation="org.eclipse.jetty.toolchain.enforcer.rules.RequireOsgiCompatibleVersionRule" />
-                <versionRedhatRule implementation="org.eclipse.jetty.toolchain.enforcer.rules.RequireRedhatCompatibleVersionRule" />
-                <versionDebianRule implementation="org.eclipse.jetty.toolchain.enforcer.rules.RequireDebianCompatibleVersionRule" />
+                <versionTxtRule implementation="org.eclipse.jetty.toolchain.enforcer.rules.VersionTxtRule"/>
+                <versionOsgiRule implementation="org.eclipse.jetty.toolchain.enforcer.rules.RequireOsgiCompatibleVersionRule"/>
+                <versionRedhatRule implementation="org.eclipse.jetty.toolchain.enforcer.rules.RequireRedhatCompatibleVersionRule"/>
+                <versionDebianRule implementation="org.eclipse.jetty.toolchain.enforcer.rules.RequireDebianCompatibleVersionRule"/>
               </rules>
             </configuration>
           </execution>
@@ -360,6 +361,7 @@
     <module>test-jetty-nested</module>
     <module>example-jetty-embedded</module>
     <module>tests</module>
+    <module>jetty-plugin-model</module>
   </modules>
   <dependencyManagement>
     <dependencies>
@@ -524,7 +526,7 @@
                     <tag>
                       <name>org.apache.xbean.XBean</name>
                       <placement>X</placement>
-                      <head />
+                      <head/>
                     </tag>
                   </tags>
                 </configuration>
@@ -596,7 +598,7 @@
                 <tag>
                   <name>org.apache.xbean.XBean</name>
                   <placement>X</placement>
-                  <head />
+                  <head/>
                 </tag>
               </tags>
             </configuration>

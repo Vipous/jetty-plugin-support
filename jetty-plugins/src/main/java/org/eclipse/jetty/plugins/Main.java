@@ -77,12 +77,14 @@ public class Main
             if ("--listPlugins".equals(arg))
                 _listPlugins = true;
         }
+        
+        // TODO: Usage instead of throwing exceptions
         if (_jettyHome == null && _installPlugin != null)
             throw new IllegalArgumentException("No --jettyHome commandline option specified!");
         if (_installPlugin == null && _listPlugins == false)
-            throw new IllegalArgumentException("Neither --installPlugin=<pluginname> nor --list-plugins commandline option specified. Nothing to do for me!");
+            throw new IllegalArgumentException("Neither --installPlugin=<pluginname> nor --listPlugins commandline option specified. Nothing to do for me!");
         if (_installPlugin != null && _listPlugins)
             throw new IllegalArgumentException(
-                    "Please specify either --installPlugin=<pluginname> or --list-plugins commandline options, but not both at the same time!");
+                    "Please specify either --installPlugin=<pluginname> or --listPlugins commandline options, but not both at the same time!");
     }
 }

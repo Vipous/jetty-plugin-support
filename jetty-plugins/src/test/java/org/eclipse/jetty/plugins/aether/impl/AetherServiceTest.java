@@ -23,8 +23,8 @@ import java.util.jar.JarFile;
 
 import org.apache.maven.repository.internal.MavenRepositorySystemSession;
 import org.eclipse.jetty.plugins.aether.util.Booter;
-import org.eclipse.jetty.plugins.aether.util.ConsoleRepositoryListener;
-import org.eclipse.jetty.plugins.aether.util.ConsoleTransferListener;
+import org.eclipse.jetty.plugins.aether.util.LoggerRepositoryListener;
+import org.eclipse.jetty.plugins.aether.util.LoggerTransferListener;
 import org.junit.Before;
 import org.junit.Test;
 import org.sonatype.aether.RepositorySystem;
@@ -115,8 +115,8 @@ public class AetherServiceTest
 
         LocalRepository localRepo = new LocalRepository("target/local-repo");
         session.setLocalRepositoryManager(system.newLocalRepositoryManager(localRepo));
-        session.setTransferListener(new ConsoleTransferListener());
-        session.setRepositoryListener(new ConsoleRepositoryListener());
+        session.setTransferListener(new LoggerTransferListener());
+        session.setRepositoryListener(new LoggerRepositoryListener());
 
         // uncomment to generate dirty trees
         // session.setDependencyGraphTransformer( null );

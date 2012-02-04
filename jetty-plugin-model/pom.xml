@@ -19,29 +19,50 @@
 			<plugin>
 				<groupId>org.codehaus.modello</groupId>
 				<artifactId>modello-maven-plugin</artifactId>
-				<version>1.4</version>
+				<version>1.5</version>
 				<configuration>
-					<version>1.0.0</version>
-					<packageWithVersion>false</packageWithVersion>
 					<models>
 						<model>src/main/mdo/plugin-model.xml</model>
 					</models>
+					<version>1.0.0</version>
 				</configuration>
 				<executions>
 					<execution>
-						<id>java</id>
+						<id>pluginModel</id>
+						<phase>generate-sources</phase>
 						<goals>
-							<goal>generate</goal>
+							<goal>java</goal>
+							<goal>xpp3-reader</goal>
+							<goal>xpp3-writer</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>pluginModel-site-xsd</id>
+						<phase>pre-site</phase>
+						<goals>
+							<goal>xsd</goal>
 						</goals>
 						<configuration>
-							<generatorId>java</generatorId>
+							<outputDirectory>target/generated-site/resources/xsd</outputDirectory>
 						</configuration>
+					</execution>
+					<execution>
+						<id>pluginModel-site-doc</id>
+						<phase>pre-site</phase>
+						<goals>
+							<goal>xdoc</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>
 		</plugins>
 	</build>
 	<dependencies>
+		<dependency>
+			<groupId>org.codehaus.modello</groupId>
+			<artifactId>modello-plugin-xpp3</artifactId>
+			<version>1.5</version>
+		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>

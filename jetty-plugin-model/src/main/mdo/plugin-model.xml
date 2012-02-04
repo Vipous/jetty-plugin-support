@@ -2,7 +2,7 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://modello.codehaus.org/MODELLO/1.4.0 http://modello.codehaus.org/xsd/modello-1.4.0.xsd">
 	<id>jetty-plugin-list</id>
-	<name>Jetty Plugin List</name>
+	<name>JettyPluginList</name>
 	<description>Modello DataModel describing the available jetty-plugins</description>
 	<defaults>
 		<default>
@@ -11,13 +11,13 @@
 		</default>
 	</defaults>
 	<classes>
-		<class rootElement="true" xml.tagName="myproject">
+		<class rootElement="true" xml.tagName="AvailablePlugins">
 			<name>AvailablePlugins</name>
-			<version>3.0.0+</version>
+			<version>1.0.0</version>
 			<fields>
 				<field>
 					<name>plugins</name>
-					<version>4.0.0</version>
+					<version>1.0.0</version>
 					<association xml.itemsStyle="wrapped">
 						<type>Plugin</type>
 						<multiplicity>*</multiplicity>
@@ -29,7 +29,7 @@
 		</class>
 		<class>
 			<name>Plugin</name>
-			<version>4.0.0</version>
+			<version>1.0.0</version>
 			<fields>
 				<field>
 					<name>name</name>

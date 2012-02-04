@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.jar.JarFile;
 
-import org.eclipse.jetty.plugins.aether.AetherService;
+import org.eclipse.jetty.plugins.MavenService;
 import org.eclipse.jetty.plugins.aether.util.Booter;
 import org.sonatype.aether.RepositorySystem;
 import org.sonatype.aether.RepositorySystemSession;
@@ -37,7 +37,7 @@ import org.sonatype.aether.util.artifact.DefaultArtifact;
 /* ------------------------------------------------------------ */
 /**
  */
-public class AetherServiceImpl implements AetherService
+public class AetherServiceImpl implements MavenService
 {
     private static final String VERSION = "1.0";
     static final String GROUP_ID = "org.mortbay.jetty";

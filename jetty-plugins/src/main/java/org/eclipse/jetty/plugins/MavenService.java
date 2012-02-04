@@ -12,7 +12,7 @@
 // ========================================================================
 
 
-package org.eclipse.jetty.plugins.aether;
+package org.eclipse.jetty.plugins;
 
 import java.util.List;
 import java.util.jar.JarFile;
@@ -21,7 +21,7 @@ import java.util.jar.JarFile;
 /* ------------------------------------------------------------ */
 /**
  */
-public interface AetherService
+public interface MavenService
 {
     public List<String> listAvailablePlugins();
 

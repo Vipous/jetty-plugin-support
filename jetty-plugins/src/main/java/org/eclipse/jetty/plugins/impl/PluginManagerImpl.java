@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import org.eclipse.jetty.plugins.MavenService;
 import org.eclipse.jetty.plugins.PluginManager;
-import org.eclipse.jetty.plugins.aether.AetherService;
 
 /* ------------------------------------------------------------ */
 /**
@@ -32,9 +32,9 @@ public class PluginManagerImpl implements PluginManager
 {
     private String _jettyHome;
 
-    private AetherService _aetherService;
+    private MavenService _aetherService;
 
-    public PluginManagerImpl(AetherService aetherService, String jettyHome)
+    public PluginManagerImpl(MavenService aetherService, String jettyHome)
     {
         this._aetherService = aetherService;
         this._jettyHome = jettyHome;

@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.jar.JarFile;
 
+import org.eclipse.jetty.plugins.MavenService;
 import org.eclipse.jetty.plugins.PluginManager;
 import org.eclipse.jetty.plugins.impl.PluginManagerImpl;
 import org.junit.Before;
@@ -38,7 +39,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class PluginManagerTest
 {
     @Mock
-    private AetherService _aetherService;
+    private MavenService _aetherService;
 
     private PluginManager _pluginManager;
 

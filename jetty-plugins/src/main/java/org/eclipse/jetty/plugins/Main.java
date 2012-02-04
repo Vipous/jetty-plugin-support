@@ -16,7 +16,6 @@ package org.eclipse.jetty.plugins;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.jetty.plugins.aether.AetherService;
 import org.eclipse.jetty.plugins.aether.impl.AetherServiceImpl;
 import org.eclipse.jetty.plugins.impl.PluginManagerImpl;
 
@@ -26,7 +25,7 @@ import org.eclipse.jetty.plugins.impl.PluginManagerImpl;
 public class Main {
 	private static final String JETTY_HOME = "JETTY_HOME";
 
-	private AetherService _aetherService = new AetherServiceImpl();
+	private MavenService _aetherService = new AetherServiceImpl();
 	private PluginManager _pluginManager;
 	private String _jettyHome;
 	private String _installPlugin;

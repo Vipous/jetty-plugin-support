@@ -2,11 +2,11 @@
 <AvailablePlugins>
   <plugins>
     <plugin>
-      <name>jetty-jmx</name>
+      <name>jetty-plugin-jmx</name>
       <license>eclipse</license>
     </plugin>
     <plugin>
-      <name>jetty-jta</name>
+      <name>jetty-plugin-jta</name>
       <license>eclipse</license>
     </plugin>
   </plugins>

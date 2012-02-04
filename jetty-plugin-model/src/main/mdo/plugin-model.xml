@@ -7,7 +7,7 @@
 	<defaults>
 		<default>
 			<key>package</key>
-			<value>org.codehaus.myproject.model</value>
+			<value>org.eclipse.jetty.plugins.model</value>
 		</default>
 	</defaults>
 	<classes>

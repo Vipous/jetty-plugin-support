@@ -13,17 +13,26 @@
 
 package org.eclipse.jetty.plugins.impl;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.channels.IllegalSelectorException;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.eclipse.jetty.client.ContentExchange;
+import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.plugins.MavenService;
 import org.eclipse.jetty.plugins.PluginManager;
+import org.eclipse.jetty.plugins.model.AvailablePlugins;
+import org.eclipse.jetty.plugins.model.Plugin;
+import org.eclipse.jetty.plugins.model.io.xpp3.JettyPluginListXpp3Reader;
 
 /* ------------------------------------------------------------ */
 /**
@@ -33,11 +42,21 @@ public class PluginManagerImpl implements PluginManager
     private String _jettyHome;
 
     private MavenService _aetherService;
+    
+    private JettyPluginListXpp3Reader _xpp3Reader = new JettyPluginListXpp3Reader();
 
+    private HttpClient _httpClient = new HttpClient();
+    
     public PluginManagerImpl(MavenService aetherService, String jettyHome)
     {
         this._aetherService = aetherService;
         this._jettyHome = jettyHome;
+        _httpClient.setTimeout(20000);
+        try {
+			_httpClient.start();
+		} catch (Exception e) {
+			throw new IllegalStateException(e);
+		}
     }
 
     /* ------------------------------------------------------------ */
@@ -46,7 +65,29 @@ public class PluginManagerImpl implements PluginManager
      */
     public List<String> listAvailablePlugins()
     {
-        return _aetherService.listAvailablePlugins();
+    	AvailablePlugins availablePlugins = null;
+    	ContentExchange httpExchange = new ContentExchange();
+    	httpExchange.setURL("https://raw.github.com/jetty-project/jetty-plugin-support/master/jetty-plugin-model/src/main/resources/plugins.xml");
+    	try {
+			_httpClient.send(httpExchange);
+			httpExchange.waitForDone();
+			byte[] responseBytes = httpExchange.getResponseContentBytes();
+			InputStream is = new ByteArrayInputStream(responseBytes);
+			availablePlugins = _xpp3Reader.read(is);
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		} catch (InterruptedException e) {
+			throw new IllegalStateException(e);
+		} catch (XmlPullParserException e) {
+			throw new IllegalStateException(e);
+		}
+    	
+    	List<String> pluginNames = new ArrayList<String>();
+    	for (Plugin plugin : availablePlugins.getPlugins()) {
+			pluginNames.add(plugin.getName());
+		}
+    	
+        return pluginNames;
     }
 
     /* ------------------------------------------------------------ */
@@ -100,4 +141,8 @@ public class PluginManagerImpl implements PluginManager
             }
         }
     }
+    
+    void setHttpClient(HttpClient _httpClient) {
+		this._httpClient = _httpClient;
+	}
 }

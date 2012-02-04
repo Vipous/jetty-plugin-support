@@ -4,9 +4,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import org.codehaus.myproject.model.AvailablePlugins;
-import org.codehaus.myproject.model.Plugin;
-import org.codehaus.myproject.model.io.xpp3.JettyPluginListXpp3Writer;
+import org.eclipse.jetty.plugins.model.AvailablePlugins;
+import org.eclipse.jetty.plugins.model.Plugin;
+import org.eclipse.jetty.plugins.model.io.xpp3.JettyPluginListXpp3Writer;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -25,8 +25,8 @@ public class GeneratePluginListTest {
 	public void createListTest() throws IOException {
 		AvailablePlugins availablePlugins = new AvailablePlugins();
 
-		availablePlugins.addPlugin(createPlugin("jetty-jmx", "eclipse"));
-		availablePlugins.addPlugin(createPlugin("jetty-jta", "eclipse"));
+		availablePlugins.addPlugin(createPlugin("jetty-plugin-jmx", "eclipse"));
+		availablePlugins.addPlugin(createPlugin("jetty-plugin-jta", "eclipse"));
 
 		File file = new File("src/main/resources/plugins.xml");
 		FileOutputStream fos = new FileOutputStream(file);

@@ -2,12 +2,18 @@
 <AvailablePlugins>
   <plugins>
     <plugin>
-      <name>jetty-plugin-jmx</name>
+      <name>jetty-jmx</name>
       <license>eclipse</license>
+      <installJar>true</installJar>
+      <installConfigJar>true</installConfigJar>
+      <installWar>false</installWar>
     </plugin>
     <plugin>
-      <name>jetty-plugin-jta</name>
+      <name>jetty-jta</name>
       <license>eclipse</license>
+      <installJar>true</installJar>
+      <installConfigJar>true</installConfigJar>
+      <installWar>false</installWar>
     </plugin>
   </plugins>
 </AvailablePlugins>

@@ -16,13 +16,15 @@ package org.eclipse.jetty.plugins;
 
 import java.util.List;
 
+import org.eclipse.jetty.plugins.model.Plugin;
+
 
 /* ------------------------------------------------------------ */
 /**
  */
 public interface PluginManager
 {
-    public List<String> listAvailablePlugins();
+    public List<Plugin> listAvailablePlugins();
 
     public void installPlugin(String pluginName);
 }

@@ -16,8 +16,9 @@ package org.eclipse.jetty.plugins;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.jetty.plugins.aether.impl.AetherServiceImpl;
+import org.eclipse.jetty.plugins.impl.HttpMavenServiceImpl;
 import org.eclipse.jetty.plugins.impl.PluginManagerImpl;
+import org.eclipse.jetty.plugins.model.Plugin;
 
 /* ------------------------------------------------------------ */
 /**
@@ -25,7 +26,7 @@ import org.eclipse.jetty.plugins.impl.PluginManagerImpl;
 public class Main {
 	private static final String JETTY_HOME = "JETTY_HOME";
 
-	private MavenService _aetherService = new AetherServiceImpl();
+	private MavenService _mavenService = new HttpMavenServiceImpl();
 	private PluginManager _pluginManager;
 	private String _jettyHome;
 	private String _installPlugin;
@@ -44,7 +45,7 @@ public class Main {
 		parseEnvironmentVariables();
 		parseCommandline(args);
 
-		_pluginManager = new PluginManagerImpl(_aetherService, _jettyHome);
+		_pluginManager = new PluginManagerImpl(_mavenService, _jettyHome);
 
 		if (_listPlugins)
 			listPlugins();
@@ -53,9 +54,9 @@ public class Main {
 	}
 
 	private void listPlugins() {
-		List<String> availablePlugins = _pluginManager.listAvailablePlugins();
-		for (String plugin : availablePlugins)
-			System.out.println(plugin);
+		List<Plugin> availablePlugins = _pluginManager.listAvailablePlugins();
+		for (Plugin plugin : availablePlugins)
+			System.out.println(plugin.getName());
 	}
 
 	private void installPlugin() {

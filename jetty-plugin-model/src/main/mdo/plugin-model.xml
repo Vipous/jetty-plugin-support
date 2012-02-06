@@ -44,6 +44,24 @@
 					<comment>might make sense to have a fixed set of licenses (maybe even a license class) at a later stage. So we can optionally hide plugins if they do not have a specific license and make them available only via cmdl switch or similar</comment>
 					<required>true</required>
 				</field>
+				<field>
+					<name>installJar</name>
+					<type>boolean</type>
+					<description>If true a [pluginName]-[version].jar will be downloaded and installed</description>
+					<required>true</required>
+				</field>
+				<field>
+					<name>installConfigJar</name>
+					<type>boolean</type>
+					<description>If true a [pluginName]-[version]-config.jar will be downloaded and installed</description>
+					<required>true</required>
+				</field>
+				<field>
+					<name>installWar</name>
+					<type>boolean</type>
+					<description>If true a [pluginName]-[version].war will be downloaded and installed</description>
+					<required>true</required>
+				</field>
 			</fields>
 		</class>
 	</classes>

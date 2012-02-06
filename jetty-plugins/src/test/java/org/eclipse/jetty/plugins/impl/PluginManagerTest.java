@@ -13,20 +13,22 @@
 
 package org.eclipse.jetty.plugins.impl;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
+import java.nio.channels.FileChannel;
 import java.util.List;
-import java.util.jar.JarFile;
 
-import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.plugins.MavenService;
-import org.eclipse.jetty.plugins.PluginManager;
-import org.eclipse.jetty.plugins.impl.PluginManagerImpl;
+import org.eclipse.jetty.plugins.model.AvailablePlugins;
+import org.eclipse.jetty.plugins.model.Plugin;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,12 +41,14 @@ import org.mockito.runners.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PluginManagerTest {
 	@Mock
-	private MavenService _aetherService;
+	private MavenService _mavenService;
 
 	private PluginManagerImpl _pluginManager;
 
+	private List<Plugin> availablePlugins = createAvailablePluginsTestData();
 	private ClassLoader _classLoader = this.getClass().getClassLoader();
 	private String _tmpDir;
+	private File _javaTmpDir = new File(System.getProperty("java.io.tmpdir"));
 
 	/* ------------------------------------------------------------ */
 	/**
@@ -54,34 +58,82 @@ public class PluginManagerTest {
 	public void setUp() throws Exception {
 		URL resource = this.getClass().getResource("/jetty_home");
 		_tmpDir = resource.getFile();
-		_pluginManager = new PluginManagerImpl(_aetherService, _tmpDir);
+		_pluginManager = new PluginManagerImpl(_mavenService, _tmpDir);
 	}
 
 	@Test
 	public void testListAvailablePlugins() {
-		List<String> pluginNames = new ArrayList<String>();
-		pluginNames.add("jetty-plugin-jta");
-		pluginNames.add("jetty-plugin-jmx");
-		List<String> availablePlugins = _pluginManager.listAvailablePlugins();
-		assertTrue("jetty-plugin-jta not found",
-				availablePlugins.contains("jetty-plugin-jta"));
-		assertTrue("jetty-plugin-jmx not found",
-				availablePlugins.contains("jetty-plugin-jmx"));
+		when(_mavenService.listAvailablePlugins()).thenReturn(availablePlugins);
+		List<Plugin> availablePlugins = _pluginManager.listAvailablePlugins();
+		assertThat("jetty-jmx not found", availablePlugins.get(0).getName(),
+				equalTo("jetty-jmx"));
+		assertThat("jetty-jta not found", availablePlugins.get(1).getName(),
+				equalTo("jetty-jta"));
 	}
 
 	@Test
 	public void testInstallPlugins() throws IOException {
-		String pluginName = "jetty-plugin-jta";
-		String jtaPluginJar = _classLoader.getResource("jta.jar").getFile();
-		when(_aetherService.getPluginJar(pluginName)).thenReturn(
-				new JarFile(new File(jtaPluginJar)));
+
+		String pluginName = "jetty-jmx";
+		String jmxPluginJar = _classLoader.getResource(
+				"jetty-jmx-7.6.0.v20120127.jar").getFile();
+		String jmxPluginConfigJar = _classLoader.getResource(
+				"jetty-jmx-7.6.0.v20120127-config.jar").getFile();
+		File jmxPluginJarFile = new File(jmxPluginJar);
+		File jmxPluginConfigJarFile = new File(jmxPluginConfigJar);
+
+		// Need to copy it to a temp file since the implementation will move the
+		// file and we need to keep the test files where they are.
+		File jmxPluginTempCopy = copyToTempFile(jmxPluginJarFile);
+		File jmxPluginConfigTempCopy = copyToTempFile(jmxPluginConfigJarFile);
+
+		when(_mavenService.getPluginMetadata(pluginName)).thenReturn(
+				createPluginTestData("jetty-jmx"));
+		when(_mavenService.getPluginJar(pluginName)).thenReturn(
+				jmxPluginTempCopy);
+		when(_mavenService.getPluginConfigJar(pluginName)).thenReturn(
+				jmxPluginConfigTempCopy);
 		_pluginManager.installPlugin(pluginName);
-		assertTrue(new File(_tmpDir + File.separator + "etc" + File.separator
-				+ "jetty-hightide.xml").exists());
-		assertTrue(new File(_tmpDir + File.separator + "start.d"
-				+ File.separator + "20-jta.ini").exists());
-		assertTrue(new File(_tmpDir + File.separator + "lib" + File.separator
-				+ "jta").exists());
+		assertTrue("20-jetty-jmx.xml does not exist", new File(_tmpDir
+				+ File.separator + "start.d" + File.separator
+				+ "20-jetty-jmx.xml").exists());
+		assertTrue("jetty-jmx-7.6.0.v20120127.jar does not exist", new File(
+				_tmpDir + File.separator + "lib" + File.separator
+						+ "jetty-jmx-7.6.0.v20120127.jar").exists());
+	}
+
+	public File copyToTempFile(File sourceFile) throws IOException {
+		File destFile = new File(_javaTmpDir + File.separator + sourceFile.getName());
+		FileChannel source = null;
+		FileChannel destination = null;
+		try {
+			source = new FileInputStream(sourceFile).getChannel();
+			destination = new FileOutputStream(destFile).getChannel();
+			destination.transferFrom(source, 0, source.size());
+		} finally {
+			if (source != null) {
+				source.close();
+			}
+			if (destination != null) {
+				destination.close();
+			}
+		}
+		return destFile;
+	}
+
+	private List<Plugin> createAvailablePluginsTestData() {
+		AvailablePlugins availablePlugins = new AvailablePlugins();
+		availablePlugins.addPlugin(createPluginTestData("jetty-jmx"));
+		availablePlugins.addPlugin(createPluginTestData("jetty-jta"));
+		return availablePlugins.getPlugins();
+	}
+
+	private Plugin createPluginTestData(String pluginName) {
+		Plugin plugin = new Plugin();
+		plugin.setName(pluginName);
+		plugin.setInstallJar(true);
+		plugin.setInstallConfigJar(true);
+		return plugin;
 	}
 
 }

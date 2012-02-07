@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.jar.JarEntry;
@@ -32,13 +33,13 @@ import org.eclipse.jetty.plugins.model.Plugin;
  */
 public class PluginManagerImpl implements PluginManager {
 	private String _jettyHome;
-
 	private MavenService _mavenService;
-
 	private HttpClient _httpClient = new HttpClient();
+	
+	private static List<String> excludes = Arrays.asList("META-INF");
 
-	public PluginManagerImpl(MavenService aetherService, String jettyHome) {
-		this._mavenService = aetherService;
+	public PluginManagerImpl(MavenService mavenService, String jettyHome) {
+		this._mavenService = mavenService;
 		this._jettyHome = jettyHome;
 		_httpClient.setTimeout(20000);
 		try {
@@ -63,40 +64,57 @@ public class PluginManagerImpl implements PluginManager {
 	public void installPlugin(String pluginName) {
 		Plugin plugin = _mavenService.getPluginMetadata(pluginName);
 		if (plugin.isInstallJar()) {
-			File file = _mavenService.getPluginJar(pluginName);
-			String libDir = _jettyHome + File.separator + "lib"
-					+ File.separator;
-			createDirectory(libDir);
-			file.renameTo(new File(libDir, file.getName()));
+			installJar(plugin);
 		}
 		if (plugin.isInstallConfigJar()) {
-			try {
-				JarFile file = new JarFile(
-						_mavenService.getPluginConfigJar(pluginName));
-				Enumeration<JarEntry> entries = file.entries();
-				while (entries.hasMoreElements()) {
-					JarEntry jarEntry = entries.nextElement();
-					if (jarEntry.getName().startsWith("start.d"))
-						extractFileFromJar(file, jarEntry);
-				}
-			} catch (IOException e) {
-				throw new IllegalStateException(e);
-			}
+			installConfig(plugin);
 		}
 		if (plugin.isInstallWar()) {
-			File file = _mavenService.getPluginWar(pluginName);
-			String webappDir = _jettyHome + File.separator + "webapps"
-					+ File.separator;
-			createDirectory(webappDir);
-			file.renameTo(new File(webappDir, file.getName()));
+			installWar(plugin);
 		}
+	}
+
+	private void installJar(Plugin plugin) {
+		File file = _mavenService.getPluginJar(plugin.getName());
+		String libDir = _jettyHome + File.separator + "lib" + File.separator;
+		createDirectory(libDir);
+		file.renameTo(new File(libDir, file.getName()));
+	}
+
+	private void installConfig(Plugin plugin) {
+		try {
+			JarFile file = new JarFile(_mavenService.getPluginConfigJar(plugin
+					.getName()));
+			extractJar(file);
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	private void installWar(Plugin plugin) {
+		File file = _mavenService.getPluginWar(plugin.getName());
+		String webappDir = _jettyHome + File.separator + "webapps"
+				+ File.separator;
+		createDirectory(webappDir);
+		file.renameTo(new File(webappDir, file.getName()));
 	}
 
 	private void createDirectory(String directory) {
 		new File(directory).mkdir();
 	}
 
+	private void extractJar(JarFile file) {
+		Enumeration<JarEntry> entries = file.entries();
+		while (entries.hasMoreElements())
+			extractFileFromJar(file, entries.nextElement());
+	}
+
 	private void extractFileFromJar(JarFile jarFile, JarEntry jarEntry) {
+		for (String exclude : excludes) 
+			if(jarEntry.getName().startsWith(exclude))
+				return;
+			
+		
 		File f = new File(_jettyHome + File.separator + jarEntry.getName());
 		if (jarEntry.isDirectory()) { // if its a directory, create it
 			f.mkdir();
@@ -125,6 +143,12 @@ public class PluginManagerImpl implements PluginManager {
 		}
 	}
 
+	/**
+	 * Package private method to overwrite the HttpClient. This is for Unit
+	 * Testing only.
+	 * 
+	 * @param _httpClient
+	 */
 	void setHttpClient(HttpClient _httpClient) {
 		this._httpClient = _httpClient;
 	}

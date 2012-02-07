@@ -14,6 +14,7 @@
 package org.eclipse.jetty.plugins.impl;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
@@ -93,17 +94,25 @@ public class PluginManagerTest {
 				jmxPluginTempCopy);
 		when(_mavenService.getPluginConfigJar(pluginName)).thenReturn(
 				jmxPluginConfigTempCopy);
+		
 		_pluginManager.installPlugin(pluginName);
-		assertTrue("20-jetty-jmx.xml does not exist", new File(_tmpDir
+		
+		File metaInf = new File(_tmpDir
+				+ File.separator + "META-INF");
+		File jettyXmlConfigFile = new File(_tmpDir
 				+ File.separator + "start.d" + File.separator
-				+ "20-jetty-jmx.xml").exists());
-		assertTrue("jetty-jmx-7.6.0.v20120127.jar does not exist", new File(
+				+ "20-jetty-jmx.xml");
+		File jettyJmxJarFile = new File(
 				_tmpDir + File.separator + "lib" + File.separator
-						+ "jetty-jmx-7.6.0.v20120127.jar").exists());
+						+ "jetty-jmx-7.6.0.v20120127.jar");
+		assertThat("META-INF should be skipped",metaInf.exists(), not(true));
+		assertTrue("20-jetty-jmx.xml does not exist", jettyXmlConfigFile.exists());
+		assertTrue("jetty-jmx-7.6.0.v20120127.jar does not exist", jettyJmxJarFile.exists());
 	}
 
 	public File copyToTempFile(File sourceFile) throws IOException {
-		File destFile = new File(_javaTmpDir + File.separator + sourceFile.getName());
+		File destFile = new File(_javaTmpDir + File.separator
+				+ sourceFile.getName());
 		FileChannel source = null;
 		FileChannel destination = null;
 		try {

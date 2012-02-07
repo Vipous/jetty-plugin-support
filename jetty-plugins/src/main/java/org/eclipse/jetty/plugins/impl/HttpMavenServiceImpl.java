@@ -15,12 +15,14 @@ import org.eclipse.jetty.plugins.model.Plugin;
 import org.eclipse.jetty.plugins.model.io.xpp3.JettyPluginListXpp3Reader;
 
 public class HttpMavenServiceImpl implements MavenService {
+	private static final String PLUGINS_XML_URL = "https://raw.github.com/jetty-project/jetty-plugin-support/master/jetty-plugin-model/src/main/resources/plugins.xml";
 	private static final String REPOSITORY_URL = "http://repo2.maven.org/maven2/";
 	private static final String GROUP_ID = "org/eclipse/jetty";
 	private static final String VERSION = "7.6.0.v20120127"; // TODO: should be
 																// automatically
 																// set
 
+	private String _pluginsXmlUrl = PLUGINS_XML_URL;
 	private String _repositoryUrl = REPOSITORY_URL;
 	private String _groupId = GROUP_ID;
 	private String _version = VERSION;
@@ -53,7 +55,7 @@ public class HttpMavenServiceImpl implements MavenService {
 
 	public List<Plugin> listAvailablePlugins() {
     	ContentExchange httpExchange = new ContentExchange();
-    	httpExchange.setURL("https://raw.github.com/jetty-project/jetty-plugin-support/master/jetty-plugin-model/src/main/resources/plugins.xml");
+    	httpExchange.setURL(_pluginsXmlUrl);
     	try {
 			_httpClient.send(httpExchange);
 			httpExchange.waitForDone();
@@ -92,11 +94,12 @@ public class HttpMavenServiceImpl implements MavenService {
 	private File getFile(String url){
 		ContentExchange exchange = new ContentExchange();
 		exchange.setURL(url);
+		String fileName = url.substring(url.lastIndexOf("/") + 1);
 		try {
 			_httpClient.send(exchange);
 			exchange.waitForDone();
 			byte[] responseBytes = exchange.getResponseContentBytes();
-			File tempFile = File.createTempFile("tmpJarFile", "jar");
+			File tempFile = new File(System.getProperty("java.io.tmpdir"),fileName);
 			FileOutputStream fos = new FileOutputStream(tempFile);
 			fos.write(responseBytes);
 			return tempFile;

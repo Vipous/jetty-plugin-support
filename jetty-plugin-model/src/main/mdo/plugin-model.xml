@@ -62,6 +62,24 @@
 					<description>If true a [pluginName]-[version].war will be downloaded and installed</description>
 					<required>true</required>
 				</field>
+				<field>
+					<name>repositoryUrl</name>
+					<type>String</type>
+					<description>Optional field to override the standard repo2 maven repository</description>
+					<required>false</required>
+				</field>
+				<field>
+					<name>groupId</name>
+					<type>String</type>
+					<description>Optional field to override the groupId: org.eclipse.jetty</description>
+					<required>false</required>
+				</field>
+				<field>
+					<name>version</name>
+					<type>String</type>
+					<description>Optional field to override the default plugin version</description>
+					<required>false</required>
+				</field>
 			</fields>
 		</class>
 	</classes>

@@ -15,5 +15,15 @@
       <installConfigJar>true</installConfigJar>
       <installWar>false</installWar>
     </plugin>
+    <plugin>
+      <name>jetty-plugins-jmx</name>
+      <license>eclipse</license>
+      <installJar>true</installJar>
+      <installConfigJar>true</installConfigJar>
+      <installWar>false</installWar>
+      <repositoryUrl>http://gravity-design.de:8080/nexus/content/repositories/releases/</repositoryUrl>
+      <groupId>org.mortbay.jetty</groupId>
+      <version>1.0</version>
+    </plugin>
   </plugins>
 </AvailablePlugins>

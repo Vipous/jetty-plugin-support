@@ -50,7 +50,7 @@ public class HttpMavenServiceImpl implements MavenService {
 				return plugin;
 		}
 		
-		throw new IllegalArgumentException("Unknown Plugin");
+		throw new IllegalArgumentException("Unknown Plugin: " + pluginName + " not found in " + _pluginsXmlUrl);
 	}
 
 	public List<Plugin> listAvailablePlugins() {
@@ -71,24 +71,31 @@ public class HttpMavenServiceImpl implements MavenService {
 		}
 	}
 
-	public File getPluginJar(String pluginName) {
-		String url = getPluginPrefix(pluginName) + ".jar";
+	public File getPluginJar(Plugin plugin) {
+		String url = getPluginPrefix(plugin) + ".jar";
 		return getFile(url);
 	}
 
-	public File getPluginConfigJar(String pluginName) {
-		String url = getPluginPrefix(pluginName) + "-config.jar";
+	public File getPluginConfigJar(Plugin plugin) {
+		String url = getPluginPrefix(plugin) + "-config.jar";
 		return getFile(url);
 	}
 	
-	public File getPluginWar(String pluginName) {
-		String url = getPluginPrefix(pluginName) + ".war";
+	public File getPluginWar(Plugin plugin) {
+		String url = getPluginPrefix(plugin) + ".war";
 		return getFile(url);
 	}
 	
-	private String getPluginPrefix(String pluginName) {
-		return _repositoryUrl + _groupId + "/" + pluginName + "/" + _version
-				+ "/" + pluginName + "-" + _version;
+	private String getPluginPrefix(Plugin plugin) {
+		if(plugin.getRepositoryUrl()!=null)
+			setRepositoryUrl(plugin.getRepositoryUrl());
+		if(plugin.getGroupId()!=null)
+			setGroupId(plugin.getGroupId());
+		if(plugin.getVersion()!=null)
+			setVersion(plugin.getVersion());
+		
+		return _repositoryUrl + _groupId + "/" + plugin.getName() + "/" + _version
+				+ "/" + plugin.getName() + "-" + _version;
 	}
 	
 	private File getFile(String url){
@@ -111,7 +118,7 @@ public class HttpMavenServiceImpl implements MavenService {
 	}
 
 	public void setGroupId(String groupId) {
-		this._groupId = groupId;
+		this._groupId = groupId.replace(".", "/");
 	}
 
 	public void setRepositoryUrl(String repositoryUrl) {
@@ -120,6 +127,10 @@ public class HttpMavenServiceImpl implements MavenService {
 
 	public void setVersion(String version) {
 		this._version = version;
+	}
+	
+	public void setPluginsXmlUrl(String pluginsXmlUrl) {
+		this._pluginsXmlUrl = pluginsXmlUrl;
 	}
 
 	void setHttpClient(HttpClient httpClient) {

@@ -29,9 +29,12 @@ public interface MavenService
     
     public Plugin getPluginMetadata(String pluginName);
 
-    public File getPluginJar(String pluginName);
+    public File getPluginJar(Plugin plugin);
     
-    public File getPluginConfigJar(String pluginName);
+    public File getPluginConfigJar(Plugin plugin);
     
-    public File getPluginWar(String pluginName);
+    public File getPluginWar(Plugin plugin);
+    
+    public void setPluginsXmlUrl(String pluginsXml);
+    
 }

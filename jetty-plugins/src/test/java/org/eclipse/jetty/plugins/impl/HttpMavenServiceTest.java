@@ -8,6 +8,7 @@ import static org.junit.Assert.assertThat;
 import java.io.File;
 import java.io.IOException;
 
+import org.eclipse.jetty.plugins.model.Plugin;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,13 +38,15 @@ public class HttpMavenServiceTest {
 
 	@Test
 	public void testGetPluginJar() throws IOException {
-		File pluginJar = _mavenService.getPluginJar(JETTY_JMX_PLUGIN_NAME);
+		Plugin plugin = _mavenService.getPluginMetadata(JETTY_JMX_PLUGIN_NAME);
+		File pluginJar = _mavenService.getPluginJar(plugin);
 		assertThat(pluginJar, is(not(nullValue())));
 	}
 
 	@Test
 	public void testGetConfigJar() throws IOException {
-		File configJar = _mavenService.getPluginConfigJar(JETTY_JMX_PLUGIN_NAME);
+		Plugin plugin = _mavenService.getPluginMetadata(JETTY_JMX_PLUGIN_NAME);
+		File configJar = _mavenService.getPluginConfigJar(plugin);
 		assertThat(configJar, is(not(nullValue())));
 	}
 

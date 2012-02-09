@@ -77,6 +77,8 @@ public class Main {
 			i++;
 			if (arg.startsWith("--jettyHome="))
 				_jettyHome = arg.substring(12);
+			if (arg.startsWith("--pluginsXmlUrl="))
+				_mavenService.setPluginsXmlUrl(arg.substring(16));
 			if (arg.startsWith("install"))
 				_installPlugin = args[i];
 			if ("list".equals(arg))

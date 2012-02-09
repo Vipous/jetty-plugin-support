@@ -88,11 +88,12 @@ public class PluginManagerTest {
 		File jmxPluginTempCopy = copyToTempFile(jmxPluginJarFile);
 		File jmxPluginConfigTempCopy = copyToTempFile(jmxPluginConfigJarFile);
 
+		Plugin plugin = createPluginTestData("jetty-jmx");
 		when(_mavenService.getPluginMetadata(pluginName)).thenReturn(
-				createPluginTestData("jetty-jmx"));
-		when(_mavenService.getPluginJar(pluginName)).thenReturn(
+				plugin);
+		when(_mavenService.getPluginJar(plugin)).thenReturn(
 				jmxPluginTempCopy);
-		when(_mavenService.getPluginConfigJar(pluginName)).thenReturn(
+		when(_mavenService.getPluginConfigJar(plugin)).thenReturn(
 				jmxPluginConfigTempCopy);
 		
 		_pluginManager.installPlugin(pluginName);

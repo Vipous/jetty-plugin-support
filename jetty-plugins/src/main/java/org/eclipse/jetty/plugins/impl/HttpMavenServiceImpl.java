@@ -10,6 +10,7 @@ import java.util.List;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.eclipse.jetty.client.ContentExchange;
 import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.plugins.MavenService;
 import org.eclipse.jetty.plugins.model.Plugin;
 import org.eclipse.jetty.plugins.model.io.xpp3.JettyPluginListXpp3Reader;
@@ -28,7 +29,7 @@ public class HttpMavenServiceImpl implements MavenService {
 	private String _version = VERSION;
 
 	private HttpClient _httpClient = new HttpClient();
-    private JettyPluginListXpp3Reader _xpp3Reader = new JettyPluginListXpp3Reader();
+	private JettyPluginListXpp3Reader _xpp3Reader = new JettyPluginListXpp3Reader();
 
 	public HttpMavenServiceImpl() {
 		_httpClient.setTimeout(20000);
@@ -39,24 +40,25 @@ public class HttpMavenServiceImpl implements MavenService {
 			throw new IllegalStateException(e);
 		}
 	}
-	
+
 	public Plugin getPluginMetadata(String pluginName) {
-		if(pluginName==null)
+		if (pluginName == null)
 			throw new IllegalArgumentException("pluginName parameter null");
-		
+
 		List<Plugin> plugins = listAvailablePlugins();
 		for (Plugin plugin : plugins) {
-			if(pluginName.equals(plugin.getName()))
+			if (pluginName.equals(plugin.getName()))
 				return plugin;
 		}
-		
-		throw new IllegalArgumentException("Unknown Plugin: " + pluginName + " not found in " + _pluginsXmlUrl);
+
+		throw new IllegalArgumentException("Unknown Plugin: " + pluginName
+				+ " not found in " + _pluginsXmlUrl);
 	}
 
 	public List<Plugin> listAvailablePlugins() {
-    	ContentExchange httpExchange = new ContentExchange();
-    	httpExchange.setURL(_pluginsXmlUrl);
-    	try {
+		ContentExchange httpExchange = new ContentExchange();
+		httpExchange.setURL(_pluginsXmlUrl);
+		try {
 			_httpClient.send(httpExchange);
 			httpExchange.waitForDone();
 			byte[] responseBytes = httpExchange.getResponseContentBytes();
@@ -80,38 +82,44 @@ public class HttpMavenServiceImpl implements MavenService {
 		String url = getPluginPrefix(plugin) + "-config.jar";
 		return getFile(url);
 	}
-	
+
 	public File getPluginJar(Plugin plugin) {
 		String url = getPluginPrefix(plugin) + "-plugin.jar";
 		return getFile(url);
 	}
-	
+
 	public File getPluginWar(Plugin plugin) {
 		String url = getPluginPrefix(plugin) + ".war";
 		return getFile(url);
 	}
-	
+
 	private String getPluginPrefix(Plugin plugin) {
-		if(plugin.getRepositoryUrl()!=null)
+		if (plugin.getRepositoryUrl() != null)
 			setRepositoryUrl(plugin.getRepositoryUrl());
-		if(plugin.getGroupId()!=null)
+		if (plugin.getGroupId() != null)
 			setGroupId(plugin.getGroupId());
-		if(plugin.getVersion()!=null)
+		if (plugin.getVersion() != null)
 			setVersion(plugin.getVersion());
-		
-		return _repositoryUrl + _groupId + "/" + plugin.getName() + "/" + _version
-				+ "/" + plugin.getName() + "-" + _version;
+
+		return _repositoryUrl + _groupId + "/" + plugin.getName() + "/"
+				+ _version + "/" + plugin.getName() + "-" + _version;
 	}
-	
-	private File getFile(String url){
+
+	private File getFile(String url) {
 		ContentExchange exchange = new ContentExchange();
 		exchange.setURL(url);
 		String fileName = url.substring(url.lastIndexOf("/") + 1);
 		try {
 			_httpClient.send(exchange);
 			exchange.waitForDone();
+			if (exchange.getResponseStatus() != HttpStatus.OK_200)
+				throw new IllegalStateException("HttpStatus code: "
+						+ exchange.getResponseStatus() + " for url: " + url);
 			byte[] responseBytes = exchange.getResponseContentBytes();
-			File tempFile = new File(System.getProperty("java.io.tmpdir"),fileName);
+			if (responseBytes == null)
+				throw new IllegalStateException("File: " + url + " is empty");
+			File tempFile = new File(System.getProperty("java.io.tmpdir"),
+					fileName);
 			FileOutputStream fos = new FileOutputStream(tempFile);
 			fos.write(responseBytes);
 			return tempFile;
@@ -133,7 +141,7 @@ public class HttpMavenServiceImpl implements MavenService {
 	public void setVersion(String version) {
 		this._version = version;
 	}
-	
+
 	public void setPluginsXmlUrl(String pluginsXmlUrl) {
 		this._pluginsXmlUrl = pluginsXmlUrl;
 	}

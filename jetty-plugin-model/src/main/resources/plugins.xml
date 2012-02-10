@@ -20,6 +20,7 @@
       <license>eclipse</license>
       <installJar>true</installJar>
       <installConfigJar>true</installConfigJar>
+      <installPluginJar>true</installPluginJar>
       <installWar>false</installWar>
       <repositoryUrl>http://gravity-design.de:8080/nexus/content/repositories/releases/</repositoryUrl>
       <groupId>org.mortbay.jetty</groupId>

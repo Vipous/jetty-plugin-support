@@ -173,7 +173,7 @@ public class PluginManagerTest {
 			return this;
 		}
 		public PluginBuilder installConfigJar(boolean installConfigJar) {
-			this.installJar = installConfigJar;
+			this.installConfigJar = installConfigJar;
 			return this;
 		}
 		public PluginBuilder installPluginJar(boolean installPluginJar) {

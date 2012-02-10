@@ -53,13 +53,19 @@
 				<field>
 					<name>installConfigJar</name>
 					<type>boolean</type>
-					<description>If true a [pluginName]-[version]-config.jar will be downloaded and installed</description>
+					<description>If true a [pluginName]-[version]-config.jar will be downloaded and extracted to jetty_home</description>
 					<required>true</required>
 				</field>
 				<field>
 					<name>installWar</name>
 					<type>boolean</type>
 					<description>If true a [pluginName]-[version].war will be downloaded and installed</description>
+					<required>true</required>
+				</field>
+				<field>
+					<name>installPluginJar</name>
+					<type>boolean</type>
+					<description>If true a [pluginName]-[version]-plugin.jar will be downloaded and extracted to jetty_home</description>
 					<required>true</required>
 				</field>
 				<field>

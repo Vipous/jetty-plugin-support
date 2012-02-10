@@ -71,13 +71,18 @@ public class HttpMavenServiceImpl implements MavenService {
 		}
 	}
 
-	public File getPluginJar(Plugin plugin) {
+	public File getJar(Plugin plugin) {
 		String url = getPluginPrefix(plugin) + ".jar";
 		return getFile(url);
 	}
 
 	public File getPluginConfigJar(Plugin plugin) {
 		String url = getPluginPrefix(plugin) + "-config.jar";
+		return getFile(url);
+	}
+	
+	public File getPluginJar(Plugin plugin) {
+		String url = getPluginPrefix(plugin) + "-plugin.jar";
 		return getFile(url);
 	}
 	

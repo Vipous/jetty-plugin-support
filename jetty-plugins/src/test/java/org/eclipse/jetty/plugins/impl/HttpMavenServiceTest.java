@@ -39,7 +39,7 @@ public class HttpMavenServiceTest {
 	@Test
 	public void testGetPluginJar() throws IOException {
 		Plugin plugin = _mavenService.getPluginMetadata(JETTY_JMX_PLUGIN_NAME);
-		File pluginJar = _mavenService.getPluginJar(plugin);
+		File pluginJar = _mavenService.getJar(plugin);
 		assertThat(pluginJar, is(not(nullValue())));
 	}
 

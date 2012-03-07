@@ -385,7 +385,7 @@ public class SelectChannelEndPoint extends ChannelEndPoint implements AsyncEndPo
                     try
                     {
                         updateKey();
-                        this.wait(timeoutMs>=0?(end-now):10000);
+                        this.wait(timeoutMs>0?(end-now):10000);
                     }
                     catch (InterruptedException e)
                     {
@@ -433,7 +433,7 @@ public class SelectChannelEndPoint extends ChannelEndPoint implements AsyncEndPo
                     try
                     {
                         updateKey();
-                        this.wait(timeoutMs>=0?(end-now):10000);
+                        this.wait(timeoutMs>0?(end-now):10000);
                     }
                     catch (InterruptedException e)
                     {
@@ -455,14 +455,14 @@ public class SelectChannelEndPoint extends ChannelEndPoint implements AsyncEndPo
         }
         return true;
     }
-    
+
     /* ------------------------------------------------------------ */
     /**
      * @see org.eclipse.jetty.io.AsyncEndPoint#scheduleWrite()
      */
     public void scheduleWrite()
     {
-        if (_writable==true)
+        if (_writable)
             LOG.debug("Required scheduleWrite {}",this);
 
         _writable=false;
@@ -685,6 +685,17 @@ public class SelectChannelEndPoint extends ChannelEndPoint implements AsyncEndPo
     @Override
     public void close() throws IOException
     {
+        try
+        {
+            SelectionKey key = _key;
+            if (key!=null)
+                key.cancel();
+        }
+        catch (Throwable e)
+        {
+            LOG.ignore(e);
+        }
+
         try
         {
             super.close();

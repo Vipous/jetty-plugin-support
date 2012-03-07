@@ -1,16 +1,16 @@
 package org.eclipse.jetty.plugins.impl;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.List;
 
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
-import org.eclipse.jetty.client.ContentExchange;
-import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.plugins.MavenService;
 import org.eclipse.jetty.plugins.model.Plugin;
 import org.eclipse.jetty.plugins.model.io.xpp3.JettyPluginListXpp3Reader;
@@ -28,18 +28,7 @@ public class HttpMavenServiceImpl implements MavenService {
 	private String _groupId = GROUP_ID;
 	private String _version = VERSION;
 
-	private HttpClient _httpClient = new HttpClient();
 	private JettyPluginListXpp3Reader _xpp3Reader = new JettyPluginListXpp3Reader();
-
-	public HttpMavenServiceImpl() {
-		_httpClient.setTimeout(20000);
-		_httpClient.setConnectTimeout(2000);
-		try {
-			_httpClient.start();
-		} catch (Exception e) {
-			throw new IllegalStateException(e);
-		}
-	}
 
 	public Plugin getPluginMetadata(String pluginName) {
 		if (pluginName == null)
@@ -56,17 +45,13 @@ public class HttpMavenServiceImpl implements MavenService {
 	}
 
 	public List<Plugin> listAvailablePlugins() {
-		ContentExchange httpExchange = new ContentExchange();
-		httpExchange.setURL(_pluginsXmlUrl);
 		try {
-			_httpClient.send(httpExchange);
-			httpExchange.waitForDone();
-			byte[] responseBytes = httpExchange.getResponseContentBytes();
-			InputStream is = new ByteArrayInputStream(responseBytes);
-			return _xpp3Reader.read(is).getPlugins();
-		} catch (IOException e) {
+			URL url = new URL(_pluginsXmlUrl);
+			URLConnection connection = url.openConnection();
+			return _xpp3Reader.read(connection.getInputStream()).getPlugins();
+		} catch (MalformedURLException e) {
 			throw new IllegalStateException(e);
-		} catch (InterruptedException e) {
+		} catch (IOException e) {
 			throw new IllegalStateException(e);
 		} catch (XmlPullParserException e) {
 			throw new IllegalStateException(e);
@@ -105,27 +90,26 @@ public class HttpMavenServiceImpl implements MavenService {
 				+ _version + "/" + plugin.getName() + "-" + _version;
 	}
 
-	private File getFile(String url) {
-		ContentExchange exchange = new ContentExchange();
-		exchange.setURL(url);
-		String fileName = url.substring(url.lastIndexOf("/") + 1);
+	private File getFile(String urlString) {
+		String fileName = urlString.substring(urlString.lastIndexOf("/") + 1);
+		URL url;
 		try {
-			_httpClient.send(exchange);
-			exchange.waitForDone();
-			if (exchange.getResponseStatus() != HttpStatus.OK_200)
-				throw new IllegalStateException("HttpStatus code: "
-						+ exchange.getResponseStatus() + " for url: " + url);
-			byte[] responseBytes = exchange.getResponseContentBytes();
-			if (responseBytes == null)
-				throw new IllegalStateException("File: " + url + " is empty");
+			url = new URL(urlString);
+			URLConnection connection = url.openConnection();
+			InputStream inputStream = connection.getInputStream();
 			File tempFile = new File(System.getProperty("java.io.tmpdir"),
 					fileName);
-			FileOutputStream fos = new FileOutputStream(tempFile);
-			fos.write(responseBytes);
+			OutputStream out = new FileOutputStream(tempFile);
+			byte buf[] = new byte[1024];
+			int len;
+			while ((len = inputStream.read(buf)) > 0)
+				out.write(buf, 0, len);
+			out.close();
+			inputStream.close();
 			return tempFile;
-		} catch (IOException e) {
+		} catch (MalformedURLException e) {
 			throw new IllegalStateException(e);
-		} catch (InterruptedException e) {
+		} catch (IOException e) {
 			throw new IllegalStateException(e);
 		}
 	}
@@ -144,10 +128,6 @@ public class HttpMavenServiceImpl implements MavenService {
 
 	public void setPluginsXmlUrl(String pluginsXmlUrl) {
 		this._pluginsXmlUrl = pluginsXmlUrl;
-	}
-
-	void setHttpClient(HttpClient httpClient) {
-		this._httpClient = httpClient;
 	}
 
 }

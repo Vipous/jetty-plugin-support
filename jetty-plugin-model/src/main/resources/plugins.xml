@@ -3,14 +3,14 @@
   <plugins>
     <plugin>
       <name>jetty-jmx</name>
-      <license>eclipse</license>
+      <license>eclipse,apache2</license>
       <installJar>true</installJar>
       <installConfigJar>true</installConfigJar>
       <installWar>false</installWar>
     </plugin>
     <plugin>
       <name>jetty-jta</name>
-      <license>eclipse</license>
+      <license>eclipse,apache2</license>
       <installJar>true</installJar>
       <installConfigJar>true</installConfigJar>
       <installWar>false</installWar>

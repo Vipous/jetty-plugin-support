@@ -45,7 +45,7 @@ public class PluginManagerImpl implements PluginManager {
 	/**
 	 * @see org.eclipse.jetty.plugins.PluginManager#listAvailablePlugins()
 	 */
-	public List<Plugin> listAvailablePlugins() {
+	public List<String> listAvailablePlugins() {
 		return _mavenService.listAvailablePlugins();
 	}
 

@@ -1,13 +1,15 @@
 package org.eclipse.jetty.plugins.impl;
 
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
+import org.eclipse.jetty.plugins.MavenService;
 import org.eclipse.jetty.plugins.model.Plugin;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,7 +26,7 @@ import org.junit.Test;
  * 
  */
 public class HttpMavenServiceTest {
-	private HttpMavenServiceImpl _mavenService = new HttpMavenServiceImpl();
+	private MavenService _mavenService = new HttpMavenServiceImpl();
 
 	private static final String JETTY_JMX_PLUGIN_NAME = "jetty-jmx";
 
@@ -34,19 +36,21 @@ public class HttpMavenServiceTest {
 
 	@Test
 	public void testListAvailablePlugins() {
+		List<String> pluginNames = _mavenService.listAvailablePlugins();
+		assertThat(pluginNames.size(), greaterThan(1));
 	}
 
 	@Test
 	public void testGetPluginJar() throws IOException {
-		Plugin plugin = _mavenService.getPluginMetadata(JETTY_JMX_PLUGIN_NAME);
-		File pluginJar = _mavenService.getJar(plugin);
+		Plugin plugin = _mavenService.getPlugin(JETTY_JMX_PLUGIN_NAME);
+		File pluginJar = plugin.getJar();
 		assertThat(pluginJar, is(not(nullValue())));
 	}
 
 	@Test
 	public void testGetConfigJar() throws IOException {
-		Plugin plugin = _mavenService.getPluginMetadata(JETTY_JMX_PLUGIN_NAME);
-		File configJar = _mavenService.getPluginConfigJar(plugin);
+		Plugin plugin = _mavenService.getPlugin(JETTY_JMX_PLUGIN_NAME);
+		File configJar = plugin.getConfigJar();
 		assertThat(configJar, is(not(nullValue())));
 	}
 

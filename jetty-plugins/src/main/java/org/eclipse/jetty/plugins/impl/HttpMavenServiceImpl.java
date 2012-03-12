@@ -8,93 +8,106 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.List;
 
-import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.eclipse.jetty.plugins.MavenService;
 import org.eclipse.jetty.plugins.model.Plugin;
-import org.eclipse.jetty.plugins.model.io.xpp3.JettyPluginListXpp3Reader;
+import org.eclipse.jetty.plugins.util.RepositoryParser;
+import org.eclipse.jetty.plugins.util.StreamUtils;
 
 public class HttpMavenServiceImpl implements MavenService {
-	private static final String PLUGINS_XML_URL = "https://raw.github.com/jetty-project/jetty-plugin-support/master/jetty-plugin-model/src/main/resources/plugins.xml";
 	private static final String REPOSITORY_URL = "http://repo2.maven.org/maven2/";
 	private static final String GROUP_ID = "org/eclipse/jetty";
 	private static final String VERSION = "7.6.0.v20120127"; // TODO: should be
 																// automatically
 																// set
-
-	private String _pluginsXmlUrl = PLUGINS_XML_URL;
 	private String _repositoryUrl = REPOSITORY_URL;
 	private String _groupId = GROUP_ID;
 	private String _version = VERSION;
 
-	private JettyPluginListXpp3Reader _xpp3Reader = new JettyPluginListXpp3Reader();
+	public List<String> listAvailablePlugins() {
+		List<String> availablePlugins = new ArrayList<String>();
 
-	public Plugin getPluginMetadata(String pluginName) {
-		if (pluginName == null)
-			throw new IllegalArgumentException("pluginName parameter null");
+		String moduleListing = fetchDirectoryListingOfJettyModules();
+		List<String> modules = RepositoryParser
+				.parseLinksInDirectoryListing(moduleListing);
 
-		List<Plugin> plugins = listAvailablePlugins();
-		for (Plugin plugin : plugins) {
-			if (pluginName.equals(plugin.getName()))
-				return plugin;
+		for (String module : modules) {
+			try {
+				URL configJar = new URL(getModuleDirectory(module));
+				System.out.println(getModuleDirectory(module));
+				URLConnection connection = configJar.openConnection();
+				InputStream inputStream = connection.getInputStream();
+				String listing = StreamUtils.inputStreamToString(inputStream);
+				if(RepositoryParser.isModuleAPlugin(listing)){
+					availablePlugins.add(module);
+				}
+			} catch (MalformedURLException e) {
+				throw new IllegalStateException(e);
+			} catch (IOException e) {
+				// Honestly, I'm not a friend of ignoring exceptions as it might
+				// hide something important. In this case however it "usually"
+				// just means: THIS IS NOT A PLUGIN! However it still might hide
+				// things. If that'll be the case, I hope I'm not the one who
+				// has to debug my own code. ;)
+			}
 		}
-
-		throw new IllegalArgumentException("Unknown Plugin: " + pluginName
-				+ " not found in " + _pluginsXmlUrl);
+		System.out.println(availablePlugins);
+		return availablePlugins;
 	}
 
-	public List<Plugin> listAvailablePlugins() {
+	private String fetchDirectoryListingOfJettyModules() {
 		try {
-			URL url = new URL(_pluginsXmlUrl);
+			URL url = new URL(REPOSITORY_URL + GROUP_ID);
 			URLConnection connection = url.openConnection();
-			return _xpp3Reader.read(connection.getInputStream()).getPlugins();
+			InputStream inputStream = connection.getInputStream();
+			return StreamUtils.inputStreamToString(inputStream);
 		} catch (MalformedURLException e) {
 			throw new IllegalStateException(e);
 		} catch (IOException e) {
 			throw new IllegalStateException(e);
-		} catch (XmlPullParserException e) {
-			throw new IllegalStateException(e);
 		}
 	}
 
-	public File getJar(Plugin plugin) {
-		String url = getPluginPrefix(plugin) + ".jar";
-		return getFile(url);
+	public Plugin getPlugin(String pluginName) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
-	public File getPluginConfigJar(Plugin plugin) {
-		String url = getPluginPrefix(plugin) + "-config.jar";
-		return getFile(url);
+	// public File getJar(Plugin plugin) {
+	// String url = getPluginPrefix(plugin) + ".jar";
+	// return getFile(url);
+	// }
+	//
+	// public File getPluginConfigJar(Plugin plugin) {
+	// String url = getPluginPrefix(plugin) + "-config.jar";
+	// return getFile(url);
+	// }
+	//
+	// public File getPluginJar(Plugin plugin) {
+	// String url = getPluginPrefix(plugin) + "-plugin.jar";
+	// return getFile(url);
+	// }
+	//
+	// public File getPluginWar(Plugin plugin) {
+	// String url = getPluginPrefix(plugin) + ".war";
+	// return getFile(url);
+	// }
+
+	private String getModuleDirectory(String pluginName) {
+		return _repositoryUrl + _groupId + "/" + pluginName + "/" + _version
+				+ "/";
 	}
 
-	public File getPluginJar(Plugin plugin) {
-		String url = getPluginPrefix(plugin) + "-plugin.jar";
-		return getFile(url);
-	}
-
-	public File getPluginWar(Plugin plugin) {
-		String url = getPluginPrefix(plugin) + ".war";
-		return getFile(url);
-	}
-
-	private String getPluginPrefix(Plugin plugin) {
-		if (plugin.getRepositoryUrl() != null)
-			setRepositoryUrl(plugin.getRepositoryUrl());
-		if (plugin.getGroupId() != null)
-			setGroupId(plugin.getGroupId());
-		if (plugin.getVersion() != null)
-			setVersion(plugin.getVersion());
-
-		return _repositoryUrl + _groupId + "/" + plugin.getName() + "/"
-				+ _version + "/" + plugin.getName() + "-" + _version;
+	private String getModulePrefix(String pluginName) {
+		return getModuleDirectory(pluginName) + pluginName + "-" + _version;
 	}
 
 	private File getFile(String urlString) {
 		String fileName = urlString.substring(urlString.lastIndexOf("/") + 1);
-		URL url;
 		try {
-			url = new URL(urlString);
+			URL url = new URL(urlString);
 			URLConnection connection = url.openConnection();
 			InputStream inputStream = connection.getInputStream();
 			File tempFile = new File(System.getProperty("java.io.tmpdir"),
@@ -124,10 +137,6 @@ public class HttpMavenServiceImpl implements MavenService {
 
 	public void setVersion(String version) {
 		this._version = version;
-	}
-
-	public void setPluginsXmlUrl(String pluginsXmlUrl) {
-		this._pluginsXmlUrl = pluginsXmlUrl;
 	}
 
 }

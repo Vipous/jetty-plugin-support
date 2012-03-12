@@ -14,7 +14,6 @@
 
 package org.eclipse.jetty.plugins;
 
-import java.io.File;
 import java.util.List;
 
 import org.eclipse.jetty.plugins.model.Plugin;
@@ -25,18 +24,7 @@ import org.eclipse.jetty.plugins.model.Plugin;
  */
 public interface MavenService
 {
-    public List<Plugin> listAvailablePlugins();
+    public List<String> listAvailablePlugins();
     
-    public Plugin getPluginMetadata(String pluginName);
-
-    public File getJar(Plugin plugin);
-    
-    public File getPluginConfigJar(Plugin plugin);
-
-    public File getPluginJar(Plugin plugin);
-    
-    public File getPluginWar(Plugin plugin);
-    
-    public void setPluginsXmlUrl(String pluginsXml);
-    
+    public Plugin getPlugin(String pluginName);
 }

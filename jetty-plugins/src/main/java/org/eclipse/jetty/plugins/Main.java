@@ -18,7 +18,6 @@ import java.util.Map;
 
 import org.eclipse.jetty.plugins.impl.HttpMavenServiceImpl;
 import org.eclipse.jetty.plugins.impl.PluginManagerImpl;
-import org.eclipse.jetty.plugins.model.Plugin;
 
 /* ------------------------------------------------------------ */
 /**
@@ -54,9 +53,10 @@ public class Main {
 	}
 
 	private void listPlugins() {
-		List<Plugin> availablePlugins = _pluginManager.listAvailablePlugins();
-		for (Plugin plugin : availablePlugins)
-			System.out.println(plugin.getName());
+		List<String> availablePlugins = _pluginManager.listAvailablePlugins();
+		for (String pluginName : availablePlugins) {
+			System.out.println(pluginName);
+		}
 	}
 
 	private void installPlugin() {
@@ -77,8 +77,6 @@ public class Main {
 			i++;
 			if (arg.startsWith("--jettyHome="))
 				_jettyHome = arg.substring(12);
-			if (arg.startsWith("--pluginsXmlUrl="))
-				_mavenService.setPluginsXmlUrl(arg.substring(16));
 			if (arg.startsWith("install"))
 				_installPlugin = args[i];
 			if ("list".equals(arg))
@@ -96,4 +94,5 @@ public class Main {
 			throw new IllegalArgumentException(
 					"Please specify either install <pluginname> or list commandline options, but not both at the same time!");
 	}
+	
 }

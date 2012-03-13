@@ -392,7 +392,6 @@
     <module>test-jetty-nested</module>
     <module>example-jetty-embedded</module>
     <module>tests</module>
-    <module>jetty-plugin-model</module>
   </modules>
   <dependencyManagement>
     <dependencies>

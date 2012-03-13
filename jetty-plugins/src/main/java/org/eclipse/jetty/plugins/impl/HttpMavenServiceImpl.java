@@ -39,7 +39,7 @@ public class HttpMavenServiceImpl implements MavenService {
 				availablePlugins.add(module);
 			}
 		}
-		System.out.println(availablePlugins);
+		
 		return availablePlugins;
 	}
 

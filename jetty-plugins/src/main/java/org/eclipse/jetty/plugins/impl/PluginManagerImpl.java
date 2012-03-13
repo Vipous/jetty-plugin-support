@@ -66,6 +66,7 @@ public class PluginManagerImpl implements PluginManager {
 		File file = plugin.getJar();
 		String libDir = _jettyHome + File.separator + "lib" + File.separator;
 		createDirectory(libDir);
+		System.out.println("Installing: " + file.getName() + " to: " + libDir);
 		file.renameTo(new File(libDir, file.getName()));
 	}
 
@@ -83,6 +84,8 @@ public class PluginManagerImpl implements PluginManager {
 		String webappDir = _jettyHome + File.separator + "webapps"
 				+ File.separator;
 		createDirectory(webappDir);
+		System.out.println("Installing: " + file.getName() + " to: "
+				+ webappDir);
 		file.renameTo(new File(webappDir, file.getName()));
 	}
 
@@ -92,8 +95,9 @@ public class PluginManagerImpl implements PluginManager {
 
 	private void extractJar(JarFile file) {
 		Enumeration<JarEntry> entries = file.entries();
-		while (entries.hasMoreElements())
+		while (entries.hasMoreElements()) {
 			extractFileFromJar(file, entries.nextElement());
+		}
 	}
 
 	private void extractFileFromJar(JarFile jarFile, JarEntry jarEntry) {
@@ -101,6 +105,7 @@ public class PluginManagerImpl implements PluginManager {
 			if (jarEntry.getName().startsWith(exclude))
 				return;
 
+		System.out.println("Extracting: " + jarEntry.getName());
 		File f = new File(_jettyHome + File.separator + jarEntry.getName());
 		if (jarEntry.isDirectory()) { // if its a directory, create it
 			f.mkdir();

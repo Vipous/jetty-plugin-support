@@ -34,23 +34,9 @@ public class HttpMavenServiceImpl implements MavenService {
 				.parseLinksInDirectoryListing(moduleListing);
 
 		for (String module : modules) {
-			try {
-				URL configJar = new URL(getModuleDirectory(module));
-				System.out.println(getModuleDirectory(module));
-				URLConnection connection = configJar.openConnection();
-				InputStream inputStream = connection.getInputStream();
-				String listing = StreamUtils.inputStreamToString(inputStream);
-				if(RepositoryParser.isModuleAPlugin(listing)){
-					availablePlugins.add(module);
-				}
-			} catch (MalformedURLException e) {
-				throw new IllegalStateException(e);
-			} catch (IOException e) {
-				// Honestly, I'm not a friend of ignoring exceptions as it might
-				// hide something important. In this case however it "usually"
-				// just means: THIS IS NOT A PLUGIN! However it still might hide
-				// things. If that'll be the case, I hope I'm not the one who
-				// has to debug my own code. ;)
+			String listing = fetchModuleDirectoryListing(module);
+			if (RepositoryParser.isModuleAPlugin(listing)) {
+				availablePlugins.add(module);
 			}
 		}
 		System.out.println(availablePlugins);
@@ -70,30 +56,53 @@ public class HttpMavenServiceImpl implements MavenService {
 		}
 	}
 
-	public Plugin getPlugin(String pluginName) {
-		// TODO Auto-generated method stub
-		return null;
+	private String fetchModuleDirectoryListing(String module) {
+		try {
+			URL configJar = new URL(getModuleDirectory(module));
+			URLConnection connection = configJar.openConnection();
+			InputStream inputStream = connection.getInputStream();
+			return StreamUtils.inputStreamToString(inputStream);
+		} catch (MalformedURLException e) {
+			throw new IllegalStateException(e);
+		} catch (IOException e) {
+			// Honestly, I'm not a friend of ignoring exceptions as it might
+			// hide something important. In this case however it "usually"
+			// just means: THIS IS NOT A PLUGIN! However it still might hide
+			// things. If that'll be the case, I hope I'm not the one who
+			// has to debug my own code. ;)
+			return "not a plugin";
+		}
 	}
 
-	// public File getJar(Plugin plugin) {
-	// String url = getPluginPrefix(plugin) + ".jar";
-	// return getFile(url);
-	// }
-	//
-	// public File getPluginConfigJar(Plugin plugin) {
-	// String url = getPluginPrefix(plugin) + "-config.jar";
-	// return getFile(url);
-	// }
-	//
-	// public File getPluginJar(Plugin plugin) {
-	// String url = getPluginPrefix(plugin) + "-plugin.jar";
-	// return getFile(url);
-	// }
-	//
-	// public File getPluginWar(Plugin plugin) {
-	// String url = getPluginPrefix(plugin) + ".war";
-	// return getFile(url);
-	// }
+	public Plugin getPlugin(String pluginName) {
+		File configJar = getFile(getModulePrefix(pluginName) + "-config.jar");
+		Plugin plugin = new Plugin(pluginName, configJar);
+		plugin = appendJarToPlugin(pluginName, plugin);
+		plugin = appendWarToPlugin(pluginName, plugin);
+		return plugin;
+	}
+
+	private Plugin appendJarToPlugin(String pluginName, Plugin plugin) {
+		try {
+			File jar = getFile(getModulePrefix(pluginName) + ".jar");
+			plugin.setJar(jar);
+		} catch (IllegalStateException e) {
+			System.out.println("No jar file found for " + pluginName
+					+ " This is usually normal. Exception: " + e.getMessage());
+		}
+		return plugin;
+	}
+
+	private Plugin appendWarToPlugin(String pluginName, Plugin plugin) {
+		try {
+			File war = getFile(getModulePrefix(pluginName) + ".war");
+			plugin.setWar(war);
+		} catch (IllegalStateException e) {
+			System.out.println("No war file found for " + pluginName
+					+ " This is usually normal. Exception: " + e.getMessage());
+		}
+		return plugin;
+	}
 
 	private String getModuleDirectory(String pluginName) {
 		return _repositoryUrl + _groupId + "/" + pluginName + "/" + _version

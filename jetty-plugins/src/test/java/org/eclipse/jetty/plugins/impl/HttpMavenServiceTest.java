@@ -1,8 +1,6 @@
 package org.eclipse.jetty.plugins.impl;
 
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
@@ -43,8 +41,12 @@ public class HttpMavenServiceTest {
 	@Test
 	public void testGetPluginJar() throws IOException {
 		Plugin plugin = _mavenService.getPlugin(JETTY_JMX_PLUGIN_NAME);
-		File pluginJar = plugin.getJar();
-		assertThat(pluginJar, is(not(nullValue())));
+		assertThat("jetty-jmx should contain a jar", plugin.getJar(),
+				is(not(nullValue())));
+		assertThat("jetty-jmx should contain a config-jar",
+				plugin.getConfigJar(), is(notNullValue()));
+		assertThat("jetty-jmx should not contain a war", plugin.getWar(),
+				is(nullValue()));
 	}
 
 	@Test

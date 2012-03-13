@@ -13,11 +13,8 @@
 
 package org.eclipse.jetty.plugins.impl;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -26,10 +23,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.jetty.plugins.MavenService;
-import org.eclipse.jetty.plugins.model.AvailablePlugins;
 import org.eclipse.jetty.plugins.model.Plugin;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,7 +44,7 @@ public class PluginManagerTest {
 
 	private PluginManagerImpl _pluginManager;
 
-	private List<Plugin> availablePlugins = createAvailablePluginsTestData();
+	private List<String> availablePlugins = createAvailablePluginsTestData();
 	private ClassLoader _classLoader = this.getClass().getClassLoader();
 	private String _tmpDir;
 	private File _javaTmpDir = new File(System.getProperty("java.io.tmpdir"));
@@ -66,11 +63,11 @@ public class PluginManagerTest {
 	@Test
 	public void testListAvailablePlugins() {
 		when(_mavenService.listAvailablePlugins()).thenReturn(availablePlugins);
-		List<Plugin> availablePlugins = _pluginManager.listAvailablePlugins();
-		assertThat("jetty-jmx not found", availablePlugins.get(0).getName(),
-				equalTo("jetty-jmx"));
-		assertThat("jetty-jta not found", availablePlugins.get(1).getName(),
-				equalTo("jetty-jta"));
+		List<String> availablePlugins = _pluginManager.listAvailablePlugins();
+		assertThat("jetty-jmx not found",
+				availablePlugins.contains("jetty-jmx"), is(true));
+		assertThat("jetty-jta not found",
+				availablePlugins.contains("jetty-jta"), is(true));
 	}
 
 	@Test
@@ -79,17 +76,19 @@ public class PluginManagerTest {
 		String pluginJar = _classLoader.getResource("example-plugin.jar")
 				.getFile();
 		File pluginJarFile = new File(pluginJar);
-		Plugin plugin = new PluginBuilder(pluginName).installPluginJar(true).build();
+		Plugin plugin = createTestPlugin(pluginName, pluginJarFile);
 
-		when(_mavenService.getPluginMetadata(pluginName)).thenReturn(plugin);
-		when(_mavenService.getPluginJar(plugin)).thenReturn(pluginJarFile);
-		
+		when(_mavenService.getPlugin(pluginName)).thenReturn(plugin);
+
 		_pluginManager.installPlugin(pluginName);
-		
-		File someJar = new File(_tmpDir + File.separator + "lib" + File.separator + "someJar.jar");
-		assertThat("someJar.jar does not exist", someJar.exists(),is(true));
-		File someOtherJar = new File(_tmpDir + File.separator + "lib" + File.separator + "someOtherJar.jar");
-		assertThat("someOtherJar.jar does not exist", someOtherJar.exists(),is(true));
+
+		File someJar = new File(_tmpDir + File.separator + "lib"
+				+ File.separator + "someJar.jar");
+		assertThat("someJar.jar does not exist", someJar.exists(), is(true));
+		File someOtherJar = new File(_tmpDir + File.separator + "lib"
+				+ File.separator + "someOtherJar.jar");
+		assertThat("someOtherJar.jar does not exist", someOtherJar.exists(),
+				is(true));
 	}
 
 	@Test
@@ -107,12 +106,11 @@ public class PluginManagerTest {
 		// file and we need to keep the test files where they are.
 		File jmxPluginTempCopy = copyToTempFile(jmxPluginJarFile);
 		File jmxPluginConfigTempCopy = copyToTempFile(jmxPluginConfigJarFile);
-		
-		Plugin plugin = new PluginBuilder(pluginName).installConfigJar(true).installJar(true).build();
-		when(_mavenService.getPluginMetadata(pluginName)).thenReturn(plugin);
-		when(_mavenService.getJar(plugin)).thenReturn(jmxPluginTempCopy);
-		when(_mavenService.getPluginConfigJar(plugin)).thenReturn(
-				jmxPluginConfigTempCopy);
+
+		Plugin plugin = new Plugin(pluginName, jmxPluginConfigTempCopy);
+		plugin.setJar(jmxPluginTempCopy);
+
+		when(_mavenService.getPlugin(pluginName)).thenReturn(plugin);
 
 		_pluginManager.installPlugin(pluginName);
 
@@ -122,10 +120,10 @@ public class PluginManagerTest {
 		File jettyJmxJarFile = new File(_tmpDir + File.separator + "lib"
 				+ File.separator + "jetty-jmx-7.6.0.v20120127.jar");
 		assertThat("META-INF should be skipped", metaInf.exists(), not(true));
-		assertTrue("20-jetty-jmx.xml does not exist",
-				jettyXmlConfigFile.exists());
-		assertTrue("jetty-jmx-7.6.0.v20120127.jar does not exist",
-				jettyJmxJarFile.exists());
+		assertThat("20-jetty-jmx.xml does not exist",
+				jettyXmlConfigFile.exists(), is(true));
+		assertThat("jetty-jmx-7.6.0.v20120127.jar does not exist",
+				jettyJmxJarFile.exists(), is(true));
 	}
 
 	public File copyToTempFile(File sourceFile) throws IOException {
@@ -148,48 +146,16 @@ public class PluginManagerTest {
 		return destFile;
 	}
 
-	private List<Plugin> createAvailablePluginsTestData() {
-		AvailablePlugins availablePlugins = new AvailablePlugins();
-		Plugin jettyJmxPlugin = new PluginBuilder("jetty-jmx").installConfigJar(true).installJar(true).build();
-		availablePlugins.addPlugin(jettyJmxPlugin);
-		Plugin jettyJtaPlugin = new PluginBuilder("jetty-jta").installConfigJar(true).installJar(true).build();
-		availablePlugins.addPlugin(jettyJtaPlugin);
-		return availablePlugins.getPlugins();
+	private List<String> createAvailablePluginsTestData() {
+		List<String> availablePlugins = new ArrayList<String>();
+		availablePlugins.add("jetty-jmx");
+		availablePlugins.add("jetty-jta");
+		return availablePlugins;
 	}
 
-	private static class PluginBuilder {
-		private final String pluginName;
-
-		private boolean installJar;
-		private boolean installConfigJar;
-		private boolean installPluginJar;
-
-		public PluginBuilder(String pluginName) {
-			this.pluginName = pluginName;
-		}
-
-		public PluginBuilder installJar(boolean installJar) {
-			this.installJar = installJar;
-			return this;
-		}
-		public PluginBuilder installConfigJar(boolean installConfigJar) {
-			this.installConfigJar = installConfigJar;
-			return this;
-		}
-		public PluginBuilder installPluginJar(boolean installPluginJar) {
-			this.installPluginJar = installPluginJar;
-			return this;
-		}
-		
-		public Plugin build(){
-			Plugin plugin = new Plugin();
-			plugin.setName(pluginName);
-			plugin.setInstallJar(installJar);
-			plugin.setInstallConfigJar(installConfigJar);
-			plugin.setInstallPluginJar(installPluginJar);
-			return plugin;
-		}
-
+	private Plugin createTestPlugin(String name, File jar) {
+		Plugin plugin = new Plugin(name, jar);
+		return plugin;
 	}
 
 }

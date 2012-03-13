@@ -54,19 +54,16 @@ public class PluginManagerImpl implements PluginManager {
 	 * @see org.eclipse.jetty.plugins.PluginManager#installPlugin(String)
 	 */
 	public void installPlugin(String pluginName) {
-		Plugin plugin = _mavenService.getPluginMetadata(pluginName);
+		Plugin plugin = _mavenService.getPlugin(pluginName);
+		installConfig(plugin);
 		if (plugin.isInstallJar())
 			installJar(plugin);
-		if (plugin.isInstallConfigJar())
-			installConfig(plugin);
-		if (plugin.isInstallPluginJar())
-			installPluginJar(plugin);
 		if (plugin.isInstallWar())
 			installWar(plugin);
 	}
 
 	private void installJar(Plugin plugin) {
-		File file = _mavenService.getJar(plugin);
+		File file = plugin.getJar();
 		String libDir = _jettyHome + File.separator + "lib" + File.separator;
 		createDirectory(libDir);
 		file.renameTo(new File(libDir, file.getName()));
@@ -74,16 +71,7 @@ public class PluginManagerImpl implements PluginManager {
 
 	private void installConfig(Plugin plugin) {
 		try {
-			JarFile file = new JarFile(_mavenService.getPluginConfigJar(plugin));
-			extractJar(file);
-		} catch (IOException e) {
-			throw new IllegalStateException(e);
-		}
-	}
-
-	private void installPluginJar(Plugin plugin) {
-		try {
-			JarFile file = new JarFile(_mavenService.getPluginJar(plugin));
+			JarFile file = new JarFile(plugin.getConfigJar());
 			extractJar(file);
 		} catch (IOException e) {
 			throw new IllegalStateException(e);
@@ -91,7 +79,7 @@ public class PluginManagerImpl implements PluginManager {
 	}
 
 	private void installWar(Plugin plugin) {
-		File file = _mavenService.getPluginWar(plugin);
+		File file = plugin.getWar();
 		String webappDir = _jettyHome + File.separator + "webapps"
 				+ File.separator;
 		createDirectory(webappDir);

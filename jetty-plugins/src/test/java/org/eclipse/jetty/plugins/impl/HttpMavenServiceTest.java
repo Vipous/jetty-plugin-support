@@ -1,6 +1,9 @@
 package org.eclipse.jetty.plugins.impl;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
@@ -30,29 +33,26 @@ public class HttpMavenServiceTest {
 
 	@Before
 	public void setUp() throws Exception {
+		_mavenService.setRepositoryUrl("http://gravity-design.de:8080/nexus/content/repositories/releases/");
 	}
 
 	@Test
 	public void testListAvailablePlugins() {
 		List<String> pluginNames = _mavenService.listAvailablePlugins();
-		assertThat(pluginNames.size(), greaterThan(1));
+		assertThat(pluginNames.size(), is(2));
 	}
 
 	@Test
 	public void testGetPluginJar() throws IOException {
 		Plugin plugin = _mavenService.getPlugin(JETTY_JMX_PLUGIN_NAME);
-		assertThat("jetty-jmx should contain a jar", plugin.getJar(),
-				is(not(nullValue())));
-		assertThat("jetty-jmx should contain a config-jar",
-				plugin.getConfigJar(), is(notNullValue()));
-		assertThat("jetty-jmx should not contain a war", plugin.getWar(),
-				is(nullValue()));
+		assertThat("jetty-jmx should contain a plugin-jar",
+				plugin.getPluginJar(), is(notNullValue()));
 	}
 
 	@Test
 	public void testGetConfigJar() throws IOException {
 		Plugin plugin = _mavenService.getPlugin(JETTY_JMX_PLUGIN_NAME);
-		File configJar = plugin.getConfigJar();
+		File configJar = plugin.getPluginJar();
 		assertThat(configJar, is(not(nullValue())));
 	}
 

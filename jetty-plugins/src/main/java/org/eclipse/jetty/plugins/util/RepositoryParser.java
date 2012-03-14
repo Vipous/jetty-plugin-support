@@ -14,25 +14,29 @@ import java.util.regex.Pattern;
  * 
  */
 public class RepositoryParser {
+	private final static List<String> EXCLUDES = Arrays.asList("..");
+
 	public static List<String> parseLinksInDirectoryListing(String listing) {
 		List<String> modules = new ArrayList<String>();
 		List<String> lines = Arrays.asList(listing.split("\n"));
 		for (String line : lines) {
-			Pattern p = Pattern.compile("^<a href=\"(?=([^/]+)).*");
+			Pattern p = Pattern.compile(".*?<a href=\"[^>]+>(?=([^</]+)/).*");
 			Matcher m = p.matcher(line);
 			if (m.matches()) {
-				modules.add(m.group(1));
+				if (!EXCLUDES.contains(m.group(1))) {
+					modules.add(m.group(1));
+				}
 			}
 		}
 		return modules;
 	}
-	
-	public static boolean isModuleAPlugin(String listing){
+
+	public static boolean isModuleAPlugin(String listing) {
 		List<String> lines = Arrays.asList(listing.split("\n"));
 		for (String line : lines) {
-			Pattern p = Pattern.compile("-config\\.jar");
+			Pattern p = Pattern.compile("-plugin\\.jar");
 			Matcher m = p.matcher(line);
-			if(m.find()){
+			if (m.find()) {
 				return true;
 			}
 		}

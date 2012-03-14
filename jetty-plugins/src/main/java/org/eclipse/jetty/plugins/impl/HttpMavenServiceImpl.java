@@ -45,7 +45,7 @@ public class HttpMavenServiceImpl implements MavenService {
 
 	private String fetchDirectoryListingOfJettyModules() {
 		try {
-			URL url = new URL(REPOSITORY_URL + GROUP_ID);
+			URL url = new URL(_repositoryUrl + _groupId);
 			URLConnection connection = url.openConnection();
 			InputStream inputStream = connection.getInputStream();
 			return StreamUtils.inputStreamToString(inputStream);
@@ -75,33 +75,8 @@ public class HttpMavenServiceImpl implements MavenService {
 	}
 
 	public Plugin getPlugin(String pluginName) {
-		File configJar = getFile(getModulePrefix(pluginName) + "-config.jar");
-		Plugin plugin = new Plugin(pluginName, configJar);
-		plugin = appendJarToPlugin(pluginName, plugin);
-		plugin = appendWarToPlugin(pluginName, plugin);
-		return plugin;
-	}
-
-	private Plugin appendJarToPlugin(String pluginName, Plugin plugin) {
-		try {
-			File jar = getFile(getModulePrefix(pluginName) + ".jar");
-			plugin.setJar(jar);
-		} catch (IllegalStateException e) {
-			System.out.println("No jar file found for " + pluginName
-					+ " This is usually normal. Exception: " + e.getMessage());
-		}
-		return plugin;
-	}
-
-	private Plugin appendWarToPlugin(String pluginName, Plugin plugin) {
-		try {
-			File war = getFile(getModulePrefix(pluginName) + ".war");
-			plugin.setWar(war);
-		} catch (IllegalStateException e) {
-			System.out.println("No war file found for " + pluginName
-					+ " This is usually normal. Exception: " + e.getMessage());
-		}
-		return plugin;
+		File configJar = getFile(getModulePrefix(pluginName) + "-plugin.jar");
+		return new Plugin(pluginName, configJar);
 	}
 
 	private String getModuleDirectory(String pluginName) {

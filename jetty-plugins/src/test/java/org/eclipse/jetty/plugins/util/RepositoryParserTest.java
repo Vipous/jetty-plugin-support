@@ -1,12 +1,12 @@
 package org.eclipse.jetty.plugins.util;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.List;
 
-import org.eclipse.jetty.plugins.model.Plugin;
 import org.junit.Before;
 import org.junit.Test;
 

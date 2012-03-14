@@ -27,4 +27,10 @@ public interface MavenService
     public List<String> listAvailablePlugins();
     
     public Plugin getPlugin(String pluginName);
+    
+	public void setGroupId(String groupId);
+
+	public void setRepositoryUrl(String repositoryUrl);
+
+	public void setVersion(String version);
 }

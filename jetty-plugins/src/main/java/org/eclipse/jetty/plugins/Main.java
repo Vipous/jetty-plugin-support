@@ -30,6 +30,9 @@ public class Main {
 	private String _jettyHome;
 	private String _installPlugin;
 	private boolean _listPlugins;
+	private String _repositoryUrl;
+	private String _groupId;
+	private String _version;
 
 	/* ------------------------------------------------------------ */
 	/**
@@ -43,13 +46,27 @@ public class Main {
 	private void execute(String[] args) {
 		parseEnvironmentVariables();
 		parseCommandline(args);
+		configureMavenService();
 
 		_pluginManager = new PluginManagerImpl(_mavenService, _jettyHome);
 
-		if (_listPlugins)
+		if (_listPlugins) {
 			listPlugins();
-		else if (_installPlugin != null)
+		} else if (_installPlugin != null) {
 			installPlugin();
+		}
+	}
+
+	private void configureMavenService() {
+		if (_repositoryUrl != null) {
+			_mavenService.setRepositoryUrl(_repositoryUrl);
+		}
+		if (_groupId != null) {
+			_mavenService.setGroupId(_groupId);
+		}
+		if (_version != null) {
+			_mavenService.setVersion(_version);
+		}
 	}
 
 	private void listPlugins() {
@@ -61,7 +78,8 @@ public class Main {
 
 	private void installPlugin() {
 		_pluginManager.installPlugin(_installPlugin);
-		System.out.println("Successfully installed plugin: " + _installPlugin + " to " + _jettyHome);
+		System.out.println("Successfully installed plugin: " + _installPlugin
+				+ " to " + _jettyHome);
 	}
 
 	private void parseEnvironmentVariables() {
@@ -75,12 +93,25 @@ public class Main {
 		int i = 0;
 		for (String arg : args) {
 			i++;
-			if (arg.startsWith("--jettyHome="))
+			
+			if (arg.startsWith("--jettyHome=")) {
 				_jettyHome = arg.substring(12);
-			if (arg.startsWith("install"))
+			}
+			if (arg.startsWith("--repositoryUrl=")) {
+				_repositoryUrl = arg.substring(16);
+			}
+			if (arg.startsWith("--groupId=")) {
+				_groupId = arg.substring(10);
+			}
+			if (arg.startsWith("--version=")) {
+				_version = arg.substring(10);
+			}
+			if (arg.startsWith("install")) {
 				_installPlugin = args[i];
-			if ("list".equals(arg))
+			}
+			if ("list".equals(arg)) {
 				_listPlugins = true;
+			}
 		}
 
 		// TODO: Usage instead of throwing exceptions
@@ -94,5 +125,5 @@ public class Main {
 			throw new IllegalArgumentException(
 					"Please specify either install <pluginname> or list commandline options, but not both at the same time!");
 	}
-	
+
 }

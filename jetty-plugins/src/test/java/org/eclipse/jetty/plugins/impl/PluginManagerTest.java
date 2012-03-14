@@ -95,20 +95,15 @@ public class PluginManagerTest {
 	public void testInstallPlugins() throws IOException {
 
 		String pluginName = "jetty-jmx";
-		String jmxPluginJar = _classLoader.getResource(
-				"jetty-jmx-7.6.0.v20120127.jar").getFile();
 		String jmxPluginConfigJar = _classLoader.getResource(
-				"jetty-jmx-7.6.0.v20120127-config.jar").getFile();
-		File jmxPluginJarFile = new File(jmxPluginJar);
+				"jetty-jmx-7.6.0.v20120127-plugin.jar").getFile();
 		File jmxPluginConfigJarFile = new File(jmxPluginConfigJar);
 
 		// Need to copy it to a temp file since the implementation will move the
 		// file and we need to keep the test files where they are.
-		File jmxPluginTempCopy = copyToTempFile(jmxPluginJarFile);
 		File jmxPluginConfigTempCopy = copyToTempFile(jmxPluginConfigJarFile);
 
 		Plugin plugin = new Plugin(pluginName, jmxPluginConfigTempCopy);
-		plugin.setJar(jmxPluginTempCopy);
 
 		when(_mavenService.getPlugin(pluginName)).thenReturn(plugin);
 
